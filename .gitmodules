@@ -1,0 +1,3 @@
+[submodule "org-clock-csv"]
+	path = org-clock-csv
+	url = https://github.com/atheriel/org-clock-csv.git

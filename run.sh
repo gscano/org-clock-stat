@@ -1,13 +1,15 @@
 #!/bin/bash
 
+path=$(realpath $(dirname $BASH_SOURCE))
+
 emacs_init="~/.emacs.d/init.el"
-org_clock_csv="./org-clock-csv/org-clock-csv.el"
+org_clock_csv=$path"/org-clock-csv/org-clock-csv.el"
 output="stats.csv"
 
 usage()
 {
     echo "Usage: run [--help,-h] [--init <emacs init>][--output <output>] [--org-clock-csv <path>] <filename> ..."
-    echo "   --init           emacs init file,     defaults to $emacs_init"
+    echo "   --init           emacs init file,     defaults to '$emacs_init'"
     echo "   --output         csv file,            defaults to '$output'"
     echo "   --org-clock-csv  path to the library, defaults to '$org_clock_csv'"
 }

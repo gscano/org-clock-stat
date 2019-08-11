@@ -12,7 +12,7 @@ function readFile(event) {
 	d3.csvParse(e.target.result, parse);
 	console.log(window.tags);
 	console.log(window.dataset);
-	draw();
+	drawBrowser();
     }
 
     reader.readAsText(event.target.files[0]);
@@ -74,4 +74,26 @@ function parse(data) {
 	task.entries = []
 
     task.entries.push({"start": data.start, "duration": data.duration, "end": data.end});
+}
+
+function drawBrowser() {
+
+    function recurse(ul) {
+	var li = ul.append('li')
+	    .text(task => task.name)
+	    .attr("ishabit", d => d.ishabit ? "true" : "false");
+
+	if(!li.empty()) {
+	    ul = li.filter(task => 0 < task.subtasks.length)
+		.append('ul').selectAll('ul')
+		.data(task => task.subtasks).enter();
+
+	    recurse(ul);
+	}
+    }
+
+    d3.select("#browser").selectAll('ul')
+	.data(window.dataset)
+	.enter()
+	.call(recurse);
 }

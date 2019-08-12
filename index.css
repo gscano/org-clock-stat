@@ -1,4 +1,20 @@
-li[ishabit=true]
+#browser
+{
+    width: 33%;
+}
+
+li[ishabit=true] .headline
 {
     text-decoration: underline;
+}
+
+ul.tags
+{
+    display:inline;
+    float:right;
+}
+
+ul.tags li
+{
+    display:inline;
 }

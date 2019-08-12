@@ -79,14 +79,20 @@ function parse(data) {
 function drawBrowser() {
 
     function recurse(ul) {
-	var li = ul.append('li')
-	    .text(task => task.name)
-	    .attr("ishabit", d => d.ishabit ? "true" : "false");
+	var li = ul.append('li').attr("ishabit", d => d.ishabit ? "true" : "false");
+
+	li.append('span').attr("class", "headline").text(task => task.name);
+
+	  li.filter(task => task.hasOwnProperty('tags') && 0 < task.tags.length)
+	    .append('ul').attr("class", "tags").selectAll('ul')
+	    .data(task => task.tags).enter()
+	    .append('li').text(d => d);
 
 	if(!li.empty()) {
 	    ul = li.filter(task => 0 < task.subtasks.length)
 		.append('ul').selectAll('ul')
-		.data(task => task.subtasks).enter();
+		.data(task => task.subtasks, function(d) { return d; })
+		.enter();
 
 	    recurse(ul);
 	}

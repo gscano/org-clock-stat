@@ -1,20 +1,54 @@
+#tags li
+{
+    display: inline;
+    padding: 5px;
+    border-radius: 25px;
+    cursor: pointer;
+    background: #eeeeee;
+}
+
 #browser
 {
     width: 33%;
 }
 
-li[ishabit=true] .headline
+#browser li
+{
+    margin-bottom: 12px;
+}
+
+.task
+{
+    cursor: pointer;
+}
+
+.task[is-habit=true]
 {
     text-decoration: underline;
 }
 
+.task[is-selected=true]
+{
+    font-weight: bold;
+}
+
+.task[is-selected=false]
+{
+    font-weight: normal;
+}
+
 ul.tags
 {
-    display:inline;
-    float:right;
+    display: inline;
+    float:   right;
 }
 
 ul.tags li
 {
-    display:inline;
+    display: inline;
+    border-radius: 25px;
+    height: 2px;
+    background: #eeeeee;
+    padding: 5px;
+    cursor: pointer;
 }

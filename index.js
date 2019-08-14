@@ -3,14 +3,25 @@ class Data {
 	this.set = [];
 	this.tags = new Set();
 	var tags_color = [];
+
+	this.task_selection = new Set();
+	this.tag_selection = new Set();
     }
 
     after_parse() {
 	this.tags_color = ["#eeeeee"].concat(this.tags.map(tag => stringToColor(tag)));
     }
 
-    get_color_of(tag) {
+    get_color_of_(tag) {
 	return this.tags_color[1 + this.tags.indexOf(tag)];
+    }
+
+    get_color_of(tag) {
+	return this.tag_selection.has(tag) ? this.get_color_of_(tag) : '#eeeeee';
+    }
+
+    get_background_color_of(tag) {
+	return this.tag_selection.has(tag) ? '#eeeeee' : this.get_color_of_(tag);
     }
 }
 
@@ -31,8 +42,7 @@ function readFile(event) {
 
 	console.log(window.data);
 
-	drawTags();
-	drawBrowser();
+	draw();
     }
 
     reader.readAsText(event.target.files[0]);
@@ -40,16 +50,8 @@ function readFile(event) {
 
 function parse(data) {
 
-    {
-	var start   = new Date(data.start);
-	var end     = new Date(data.end);
-	var minutes = (end.getTime() - start.getTime()) / 1000 / 60;
-
-	data.duration = Math.floor(minutes / 60) + ":" + minutes % 60;
-
-	data.tags = new Set(data.tags.split(':'));
-	data.tags.delete('');
-    }
+    data.tags = new Set(data.tags.split(':'));
+    data.tags.delete('');
 
     window.data.tags = Array.from(new Set([...data.tags, ...window.data.tags])).sort();
 
@@ -98,13 +100,23 @@ function parse(data) {
     task.entries.push({"start": data.start, "duration": data.duration, "end": data.end});
 }
 
+function draw() {
+    drawTags();
+    drawBrowser();
+}
+
 function drawTags() {
-    d3.select('#tags').selectAll('ul')
+
+    document.getElementById('tags').innerHTML = '';//Update issue
+
+    var toto = d3.select('#tags').selectAll('ul')
 	.data(window.data.tags).enter()
-	.append('li').text(tag => tag == '' ? "&amp;emsp;": tag)
+	.append('li')
+	.text(tag => tag)
 	.attr("tag-id", (_,id) => id)
-	.attr("is-selected", "false")
+	.attr("is-selected", tag => window.data.tag_selection.has(tag))
 	.style("color", tag => window.data.get_color_of(tag))
+	.style("background-color", tag => window.data.get_background_color_of(tag))
 	.on("click", flipTags);
 }
 
@@ -116,18 +128,20 @@ function drawBrowser() {
 	li.append('span')
 	    .text(task => task.name)
 	    .attr("class", "task")
-	    .attr("is-selected", false)
-	    .attr("is-habit", task => task.ishabit ? "true" : "false")
 	    .attr("task-id", task => task.id)
+	    .attr("is-selected", task => window.data.task_selection.has(task.id))
+	    .attr("is-habit", task => task.ishabit ? "true" : "false")
 	    .on("click", flipTask);
 
 	li.filter(task => task.hasOwnProperty('tags') && 0 < task.tags.length)
 	    .append('ul').attr("class", "tags").selectAll('ul')
 	    .data(task => task.tags).enter()
-	    .append('li').text(d => d)
+	    .append('li')
+	    .text(d => d)
 	    .attr("tag-id", tag => window.data.tags.indexOf(tag))
-	    .attr("is-selected", false)
+	    .attr("is-selected", tag => window.data.tag_selection.has(window.data.tags.indexOf(tag)))
 	    .style("color", tag => window.data.get_color_of(tag))
+	    .style("background-color", tag => window.data.get_background_color_of(tag))
 	    .on("click", flipTag);
 
 	if(!li.empty()) {
@@ -140,44 +154,54 @@ function drawBrowser() {
 	}
     }
 
+    document.getElementById('browser').innerHTML = '';//Update issue
+
     d3.select("#browser").selectAll('ul')
 	.data(window.data.set).enter()
 	.call(recurse);
 }
 
-function flip(bool) { return bool == "true" ? "false" : "true"; }
+function selectAllSubTasks(task) {
+    window.data.task_selection.add(task.id);
+    task.subtasks.forEach(function(task) { selectAllSubTasks(task); });
+}
+
+function unselectAllSubTasks(task) {
+    window.data.task_selection.delete(task.id);
+    task.subtasks.forEach(function(task) { unselectAllSubTasks(task); });
+}
 
 function flipTask(task) {
+    if(window.data.task_selection.has(task.id))
+	unselectAllSubTasks(task);
+    else
+	selectAllSubTasks(task);
 
-    this.setAttribute("is-selected", flip(this.getAttribute("is-selected")));
+    draw();
 }
 
 function flipTags(tag) {
-
-    this.setAttribute("is-selected", flip(this.getAttribute("is-selected")));
-
     if(this.getAttribute("is-selected") == "true") {
-	this.style.color = 'white';
-	this.style.backgroundColor = window.data.get_color_of(tag);
-    }
-    else {
+	this.setAttribute("is-selected", "false");
 	this.style.color = window.data.get_color_of(tag);
 	this.style.backgroundColor = '#eeeeee';
     }
+    else {
+	this.setAttribute("is-selected", "true");
+	this.style.color = 'white';
+	this.style.backgroundColor = window.data.get_color_of(tag);
+    }
+
+    draw();
 }
 
 function flipTag(tag) {
+    if(window.data.tag_selection.has(tag.id))
+	window.data.tag_selection.delete(tag.id);
+    else
+	window.data.tag_selection.add(tag.id);
 
-    this.setAttribute("is-selected", flip(this.getAttribute("is-selected")));
-
-    if(this.getAttribute("is-selected") == "true") {
-	this.style.color = 'white';
-	this.style.backgroundColor = window.data.get_color_of(tag);
-    }
-    else {
-	this.style.color = window.data.get_color_of(tag);
-	this.style.backgroundColor = '#eeeeee';
-    }
+    draw();
 }
 
 function stringToColor(str) {

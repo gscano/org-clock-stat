@@ -1,10 +1,14 @@
+#control
+{
+    display: inline;
+}
+
 #tags li
 {
     display: inline;
     padding: 5px;
     border-radius: 25px;
     cursor: pointer;
-    background: #eeeeee;
 }
 
 #browser
@@ -47,8 +51,6 @@ ul.tags li
 {
     display: inline;
     border-radius: 25px;
-    height: 2px;
-    background: #eeeeee;
     padding: 5px;
     cursor: pointer;
 }

@@ -97,7 +97,7 @@ function parse(data) {
     if(!task.hasOwnProperty('entries'))
 	task.entries = []
 
-    task.entries.push({"start": data.start, "duration": data.duration, "end": data.end});
+    task.entries.push({"start": data.start, "end": data.end});
 }
 
 function draw() {

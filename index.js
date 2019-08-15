@@ -97,12 +97,14 @@ function parse(data) {
     if(!task.hasOwnProperty('entries'))
 	task.entries = []
 
-    task.entries.push({"start": data.start, "end": data.end});
+    task.entries.push([data.start, data.end]);
 }
 
 function draw() {
     drawTags();
     drawBrowser();
+
+    console.log(reduceTasks(window.data.set));
 }
 
 function drawTags() {

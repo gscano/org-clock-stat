@@ -17,6 +17,7 @@ function extractDuration(start_, end_) {
 	while(!current.isSame(end, 'day')) {
 	    result.push([current.format(format), moment.duration(1, 'day').asMinutes()]);
 	    current.add(1, 'days');
+	    console.log(current)
 	}
 
 	result.push([current.format(format), moment.duration(end.diff(current)).asMinutes()]);
@@ -50,5 +51,31 @@ function reduceDurationSub(clocks) {
 
 // [[String, String]] => [[String, Int]]
 function reduceDuration(clocks) {
-    return new Array(... reduceDurationSub(clocks));
+    return new Array(...reduceDurationSub(clocks));
+}
+
+// [[String, String]] => {'substasks': [`Self`], 'entries': [[String, String]]} => [[String, String]]
+function flattenTask(task, result = []) {
+    return flattenTask_(result, task);
+}
+
+function flattenTask_(result, task) {
+
+    if(task.hasOwnProperty('entries'))
+	result.push(...task.entries);
+
+    if(task.hasOwnProperty('subtasks'))
+	task.subtasks.reduce(flattenTask_, result);
+
+    return result;
+}
+
+// [{'substasks': [`Self`], 'entries': [[String, String]]}] => [[String, String]] => [[String, String]]
+function flattenTasks(tasks, result = []) {
+    return tasks.reduce(flattenTask_, result);
+}
+
+// [{'substasks': [`Self`], 'entries': [[String, String]]}] => [[String, String]] => [[String, String]]
+function reduceTasks(tasks) {
+    return reduceDuration(flattenTasks(tasks));
 }

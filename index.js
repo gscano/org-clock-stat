@@ -31,7 +31,10 @@ window.onload = function () {
     
     drawCalendar()
 
-    document.getElementById('file-input').addEventListener('change', readFile, false);    
+    document.getElementById('file-input').addEventListener('change', readFile, false);
+
+    starting_date_picker = new Pikaday({ field: document.getElementById('starting-date') });
+    ending_date_picker = new Pikaday({ field: document.getElementById('ending-date') });
 }
 
 function readFile(event) {

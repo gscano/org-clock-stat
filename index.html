@@ -10,9 +10,13 @@
     <!---->
 	<script src="./d3.js"></script>
 	<script src="./moment.js"></script>
+	<script src="./pikaday.js"></script>
+	<link rel="stylesheet" href="./pikaday.css">
     <!--
     <script src="https://d3js.org/d3.v5.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment-with-locales.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pikaday/pikaday.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pikaday/css/pikaday.css">
     -->
     
     <script src="./index.js"></script>
@@ -27,6 +31,35 @@
 
       <label for="file-input">File:</label>
       <input type="file" id="file-input"/>
+
+      <label for="starting-date">From:</label>
+      <input type="text" id="starting-date"/>
+
+      <label for="ending-date">To:</label>
+      <input type="text" id="ending-date"/>
+
+      <span id="weekends">
+	Display
+	<input type="checkbox" id="weekend"/>
+	<label for="weekend">weekends</label>
+	, count as
+	<input type="checkbox" id="weekend-bonus"/>
+	<label for="weekend-bonus">bonus</label>
+	.
+      </span>
+      
+      <span id="first-glance">
+	First glance for
+	<input type="checkbox" id="first-glance-weekdays"/>
+	<label for="first-glance-weekdays">weekdays</label>
+	,
+	<input type="checkbox" id="first-glance-months"/>
+	<label for="first-glance-months">months</label>
+	and
+	<input type="checkbox" id="first-glance-years"/>
+	<label for="first-glance-years">years</label>
+	.
+      </span>
       
     </div>
 

@@ -79,3 +79,17 @@ function flattenTasks(tasks, result = []) {
 function reduceTasks(tasks) {
     return reduceDuration(flattenTasks(tasks));
 }
+
+// Integer => 'HH:mm'
+function displayDuration(minutes) {
+    var hours = Math.floor(minutes / 60);
+    var minutes = minutes % 60;
+    return (hours < 10 ? "0" : "") + hours + ":" + (minutes < 10 ? "0" : "") + minutes;
+}
+
+
+// String => Boolean => String => [String]
+function weekdaysName(shift_first_day_from_sunday = 0, include_weekends = false, format = 'ddd') {
+    return [...Array(5 + include_weekends * 2).keys()]
+	.map(i => moment().day((include_weekends ? shift_first_day_from_sunday : 1) + i).format(format));
+}

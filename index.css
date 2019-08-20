@@ -54,3 +54,29 @@ ul.tags li
     padding: 5px;
     cursor: pointer;
 }
+
+#calendar
+{
+    float:right;
+}
+
+.calendar-year
+{
+    font-weight: bold;
+    text-anchor: end;
+}
+
+.calendar-weekday
+{
+    
+}
+
+.calendar-month
+{
+    
+}
+
+.calendar-day
+{
+    
+}

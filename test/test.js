@@ -56,3 +56,9 @@ verify(flattenTasks([t1,t2]), [[d1,d2],[d3,d4]]);
 verify(reduceTasks([t4]), [make("2019-08-09", "04:35"),
 			   make("2019-08-10", "24:00"),
 			   make("2019-08-11", "23:41")]);
+
+console.log(weekdaysName(0, false))
+console.log(weekdaysName(1, false))
+console.log(weekdaysName(0, true))
+console.log(weekdaysName(1, true))
+console.log(weekdaysName(1, true, 'dddd'))

@@ -80,16 +80,25 @@ function reduceTasks(tasks) {
     return reduceDuration(flattenTasks(tasks));
 }
 
-// Integer => 'HH:mm'
-function displayDuration(minutes) {
-    var hours = Math.floor(minutes / 60);
-    var minutes = minutes % 60;
-    return (hours < 10 ? "0" : "") + hours + ":" + (minutes < 10 ? "0" : "") + minutes;
+// Integer => String([0-9][0-9])
+function displayTwoDigits(number) {
+    return (number < 10 ? "0" : "") + number;
 }
 
+// Integer => String([0-2][0-9]:[0-5][0-9])
+function displayDuration(minutes) {
+    return displayTwoDigits(Math.floor(minutes / 60)) + ':' + displayTwoDigits(minutes % 60);
+}
 
-// String => Boolean => String => [String]
-function weekdaysName(shift_first_day_from_sunday = 0, include_weekends = false, format = 'ddd') {
-    return [...Array(5 + include_weekends * 2).keys()]
-	.map(i => moment().day((include_weekends ? shift_first_day_from_sunday : 1) + i).format(format));
+// Integer => Integer
+function weekdayShift(weekday) {
+    const firstIsoWeekday = moment().isoWeekday(moment.weekdays(true)[0]).isoWeekday();
+
+    if(!(weekday < firstIsoWeekday)) return 0;
+    
+    switch(firstIsoWeekday) {
+    case 1: return 0;
+    case 7: return 1;
+    default: return 2;
+    }
 }

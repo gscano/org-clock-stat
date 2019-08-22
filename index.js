@@ -29,12 +29,30 @@ window.onload = function () {
 
     window.data = new Data();
     
-    drawCalendar()
-
     document.getElementById('file-input').addEventListener('change', readFile, false);
 
     starting_date_picker = new Pikaday({ field: document.getElementById('starting-date') });
     ending_date_picker = new Pikaday({ field: document.getElementById('ending-date') });
+
+    d3.select('#average-hours').selectAll('option').data(d3.range(0,24)).enter()
+	.append('option').attr("value", hour => hour).text(hour => displayTwoDigits(hour));
+    document.getElementById('average-hours').value = "7";
+    document.getElementById('average-hours').addEventListener('change', draw);
+    d3.select('#average-minutes').selectAll('option').data(d3.range(0,60)).enter()
+	.append('option').attr("value", minutes => minutes).text(minutes => displayTwoDigits(minutes));
+    document.getElementById('average-minutes').value = "0";
+    document.getElementById('average-minutes').addEventListener('change', draw);
+    
+    document.getElementById('display-weekends').addEventListener('change', draw);
+    document.getElementById('weekends-as-bonus').addEventListener('change', draw);
+    
+    document.getElementById('first-glance-weekdays').addEventListener('change', draw);
+    document.getElementById('first-glance-months').addEventListener('change', draw);
+    document.getElementById('first-glance-years').addEventListener('change', draw);
+
+    data = randomCalendarData("2016-07-24", 8*60);
+    
+    draw();//For demo only
 }
 
 function readFile(event) {
@@ -107,17 +125,32 @@ function parse(data) {
 }
 
 function draw() {
+
+    var target = parseInt(document.getElementById('average-hours').value) * 60
+	+ parseInt(document.getElementById('average-minutes').value);
+
+    var displayWeekends = document.querySelector('#display-weekends').checked;
+    var weekendsAsBonus = document.querySelector('#weekends-as-bonus').checked;
+    
+    var hasFirstGlanceWeekdays = document.querySelector('#first-glance-weekdays').checked;
+    var hasFirstGlanceMonths = document.querySelector('#first-glance-months').checked;
+    var hasFirstGlanceYears = document.querySelector('#first-glance-years').checked;
+
+    //reduceTasks(window.data.set)
+    
     //drawTags();
     //drawBrowser();
     
-    drawCalendar(reduceTasks(window.data.set));
+    drawCalendar(data, target,
+		 displayWeekends, weekendsAsBonus,
+		 hasFirstGlanceWeekdays, hasFirstGlanceMonths, hasFirstGlanceYears);
 }
 
 function drawTags() {
 
     document.getElementById('tags').innerHTML = '';//Update issue
 
-    var toto = d3.select('#tags').selectAll('ul')
+    d3.select('#tags').selectAll('ul')
 	.data(window.data.tags).enter()
 	.append('li')
 	.text(tag => tag)
@@ -172,18 +205,21 @@ function drawBrowser() {
 //const content = d3.nest().key(d => moment(d[0]).year()).key(d => moment(d[0]).month()).entries(data).reverse();
 //console.log(content)
 
-function drawCalendar(data) {
+function drawCalendar(data, target,
+		      displayWeekends, weekendsAsBonus,
+		      hasFirstGlanceWeekdays, hasFirstGlanceMonths, hasFirstGlanceYears) {
 
+    document.getElementById('calendar').innerHTML = '';//Update issue
+    
+    moment.locale('en');
+    
     const weekdaysFormat = 'dddd';
     const monthFormat = 'MMM';
 
-    var target = 10 * 60;
-
-    const displayWeekends = true;
-    const countWeekendsIfNotDisplayed = true;
-
-    var dayFilter = displayWeekends ? (day => day) : (day => day != 0 && day != 6);
-    var countDayFilter = countWeekendsIfNotDisplayed ? (day => day) : (day => day != 0 && day != 6);
+    const dayFilter = displayWeekends ? (day => true) : (day => day != 6 && day != 7);
+    const bonusDayFilter = weekendsAsBonus ? (day => true) : (day => day != 6 && day != 7);
+    
+    const weekdaysShift = day => displayWeekends ? 0 : weekdayShift(day);
     
     const cellSize = 16;
     const textScale = 1.5;
@@ -194,17 +230,11 @@ function drawCalendar(data) {
 	return days.length;
     }
 
-    function color(target) {
-	return d3.scaleLinear().domain([0,target]).range(["white", "green"]);
-    }
-    const dayColor = d3.scaleLinear().domain([0,target]).range(["white", "green"]);
+    const color = d3.scaleLinear().domain([0,target]).range(["white", "green"]);
 
     function meanPerDay(days) { return d3.sum(days, day => day[1]) / daysInRange(days); }
     function sigmForDay(days) { return d3.deviation(days, day => day[1]); }
-    function ellipseRadix(days, radix) { return radix + 3 * sigmForDay(days) / meanPerDay(days); }
-    
-    data = randomCalendarData("2016-07-24", target);
-    console.log(data);
+    function ellipseRadix(days, radix, max) { return Math.min(radix  * meanPerDay(days) / sigmForDay(days), max); }
     
     const years = d3.nest().key(d => moment(d[0]).year()).entries(data).reverse();
     
@@ -220,37 +250,39 @@ function drawCalendar(data) {
     const year_ = year.append("g").attr("class", "calendar-year");
     
     year_.append("text").text(({key:year}) => year);
-    year_.append("ellipse").attr("cx", 15).attr("cy", -6).attr("ry", 8)
-	.attr("rx", ({values:days}) => ellipseRadix(days, 8))
-	.attr("fill", ({values:days}) => dayColor(meanPerDay(days)));
+    if(hasFirstGlanceYears)//filterBonus
+	year_.append("ellipse").attr("cx", 15).attr("cy", -6).attr("ry", 8)
+	.attr("rx", ({values:days}) => ellipseRadix(days, 8, 16))
+	.attr("fill", ({values:days}) => color(meanPerDay(days)));
     
     const weekday = year.append("g").attr("class", "calendar-weekday").attr("transform", `translate(-30,${textScale * cellSize})`);
 
-    function weekdayGridY(day) { return day * 1.05 * cellSize; }
+    function weekdayGridY(weekday) { return (weekday - weekdaysShift(weekday)) * 1.05 * cellSize; }
     
-    const weekday_ = weekday.selectAll("g")
-	  .data(({values:days}) => d3.nest().key(([date,_]) => moment(date).weekday()).entries(days).reverse())
+    const weekday_ = weekday.selectAll("g")//filter
+	  .data(({values:days}) => d3.nest().key(([date,_]) => moment(date).weekday()).entries(days).filter(({key:weekday}) => dayFilter(moment().weekday(weekday).isoWeekday())))
 	  .join("g")
-	  .attr("transform", d => `translate(3, ${weekdayGridY(d.key)})`)
-	  //.filter(({key:day}) => dayFilter(day));
+	  .attr("transform", ({key:weekday}) => `translate(3, ${weekdayGridY(weekday)})`);
 
-    weekday_.append("text").text(({key:weekday}) => moment.weekdays()[weekday]);
-    weekday_.append("ellipse").attr("cx", -10).attr("cy", -6).attr("ry", 5)
-	.attr("rx", ({values:days}) => ellipseRadix(days, 5))
-	.attr("fill", ({values:days}) => dayColor(meanPerDay(days)));
+    weekday_.append("text").text(({key:weekday}) => moment.weekdays(true)[weekday]);
+    if(hasFirstGlanceWeekdays)//filterBonus
+	weekday_.append("ellipse").attr("cx", -10).attr("cy", -6).attr("ry", 4)
+	.attr("rx", ({values:days}) => ellipseRadix(days, 4, 8))
+	.attr("fill", ({values:days}) => color(meanPerDay(days)));
     
     const month = year.append("g").attr("class", "calendar-month").attr("transform", "translate(70,0)");
 
     const month_ = month.selectAll("g")
 	  .data(({values:days}) => d3.nest().key(([date,_]) => moment(date).month() + 1).entries(days).reverse())
-          .join('g')
+	  .join('g')
      	  .attr("transform", ({values:days}) => `translate(${dayGridX(moment(days[0][0]).startOf('month'))},0)`);
     
     month_.append("text")
 	.text(({key:month}) => moment().month(month - 1).format(monthFormat))
-    month_.append("ellipse").attr("cx", 40).attr("cy", -5).attr("ry", 5)
-     	.attr("rx", ({values:days}) => ellipseRadix(days, 5))
-	.attr("fill", ({values:days}) => dayColor(meanPerDay(days)));
+    if(hasFirstGlanceMonths)//filterBonus
+	month_.append("ellipse").attr("cx", 45).attr("cy", -5).attr("ry", 5)
+     	.attr("rx", ({values:days}) => ellipseRadix(days, 5, 10))
+	.attr("fill", ({values:days}) => color(meanPerDay(days)));
     
     const days = year.append("g")
 	  .attr("class", "calendar-day")
@@ -264,16 +296,16 @@ function drawCalendar(data) {
     }
 
     function dayGridY(day) {
-	return moment(day).weekday() * (cellSize + interDaySpace);
+	var weekday = moment(day).weekday();
+	return (weekday - weekdaysShift(weekday)) * (cellSize + interDaySpace);
     }
     
     days.selectAll("rect")
-	.data(year => year.values)
+	.data(({values:days}) => days.filter(([date,_]) => dayFilter(moment(date).isoWeekday())))
 	.join("rect")
-	//.filter(([date,_]) => dayFilter(date))
     	.attr("width", cellSize).attr("height",  cellSize)
 	.attr("transform", ([date,_]) => `translate(${dayGridX(date)},${dayGridY(date)})`)
-	.attr("fill", ([_,duration]) => dayColor(duration))
+	.attr("fill", ([_,duration]) => color(duration))
 	.append("title").text(([date,duration]) => date + " " + displayDuration(duration));
 }
 

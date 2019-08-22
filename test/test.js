@@ -57,8 +57,12 @@ verify(reduceTasks([t4]), [make("2019-08-09", "04:35"),
 			   make("2019-08-10", "24:00"),
 			   make("2019-08-11", "23:41")]);
 
-console.log(weekdaysName(0, false))
-console.log(weekdaysName(1, false))
-console.log(weekdaysName(0, true))
-console.log(weekdaysName(1, true))
-console.log(weekdaysName(1, true, 'dddd'))
+moment.locale('en');
+assert(weekdayShift(1) == 1);
+
+moment.locale('fr');
+assert(weekdayShift(1) == 0);
+
+moment.locale('ar');
+assert(weekdayShift(1) == 2);
+

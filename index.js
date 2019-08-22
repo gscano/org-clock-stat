@@ -211,13 +211,11 @@ function drawCalendar(data, target,
 
     document.getElementById('calendar').innerHTML = '';//Update issue
     
-    moment.locale('en');
-    
     const weekdaysFormat = 'dddd';
     const monthFormat = 'MMM';
 
-    const dayFilter = displayWeekends ? (day => true) : (day => day != 6 && day != 7);
-    const bonusDayFilter = weekendsAsBonus ? (day => true) : (day => day != 6 && day != 7);
+    const isWeekday = day => day != 6 && day != 7;
+    const dayFilter = day => displayWeekends ? true : isWeekday(day);
     
     const weekdaysShift = day => displayWeekends ? 0 : weekdayShift(day);
     
@@ -226,18 +224,19 @@ function drawCalendar(data, target,
     const interMonthSpace = 0.5;
     const interDaySpace = 1;
 
-    function daysInRange(days) {
-	return days.length;
-    }
+    const sumDay = ([date,value]) => (displayWeekends || weekendsAsBonus) ? value : (isWeekday(moment(date).isoWeekday()) ? value : 0);
+    const countDays = days => days.reduce((accu, day) => accu + dayFilter(moment(day[0]).isoWeekday()), 0);
 
     const color = d3.scaleLinear().domain([0,target]).range(["white", "green"]);
 
-    function meanPerDay(days) { return d3.sum(days, day => day[1]) / daysInRange(days); }
-    function sigmForDay(days) { return d3.deviation(days, day => day[1]); }
-    function ellipseRadix(days, radix, max) { return Math.min(radix  * meanPerDay(days) / sigmForDay(days), max); }
-    
+    const meanPerDay = days => d3.sum(days, day => sumDay(day)) / countDays(days);
+    const sigmForDay = days => d3.deviation(days, day => sumDay(day));
+    const ellipseRadix = (days, radix, max) => Math.min(radix  * meanPerDay(days) / sigmForDay(days), max);
+
+    //Data
     const years = d3.nest().key(d => moment(d[0]).year()).entries(data).reverse();
-    
+
+    //Drawings
     const svg = d3.selectAll('div#calendar').append('svg');
     
     svg.attr('width', 200 + 54 * (cellSize + interDaySpace) + 12 * interMonthSpace)
@@ -250,8 +249,8 @@ function drawCalendar(data, target,
     const year_ = year.append("g").attr("class", "calendar-year");
     
     year_.append("text").text(({key:year}) => year);
-    if(hasFirstGlanceYears)//filterBonus
-	year_.append("ellipse").attr("cx", 15).attr("cy", -6).attr("ry", 8)
+    if(hasFirstGlanceYears)
+	year_.append("ellipse").attr("cx", 20).attr("cy", -6).attr("ry", 8)
 	.attr("rx", ({values:days}) => ellipseRadix(days, 8, 16))
 	.attr("fill", ({values:days}) => color(meanPerDay(days)));
     
@@ -259,13 +258,13 @@ function drawCalendar(data, target,
 
     function weekdayGridY(weekday) { return (weekday - weekdaysShift(weekday)) * 1.05 * cellSize; }
     
-    const weekday_ = weekday.selectAll("g")//filter
+    const weekday_ = weekday.selectAll("g")
 	  .data(({values:days}) => d3.nest().key(([date,_]) => moment(date).weekday()).entries(days).filter(({key:weekday}) => dayFilter(moment().weekday(weekday).isoWeekday())))
 	  .join("g")
 	  .attr("transform", ({key:weekday}) => `translate(3, ${weekdayGridY(weekday)})`);
 
     weekday_.append("text").text(({key:weekday}) => moment.weekdays(true)[weekday]);
-    if(hasFirstGlanceWeekdays)//filterBonus
+    if(hasFirstGlanceWeekdays)
 	weekday_.append("ellipse").attr("cx", -10).attr("cy", -6).attr("ry", 4)
 	.attr("rx", ({values:days}) => ellipseRadix(days, 4, 8))
 	.attr("fill", ({values:days}) => color(meanPerDay(days)));
@@ -279,7 +278,7 @@ function drawCalendar(data, target,
     
     month_.append("text")
 	.text(({key:month}) => moment().month(month - 1).format(monthFormat))
-    if(hasFirstGlanceMonths)//filterBonus
+    if(hasFirstGlanceMonths)
 	month_.append("ellipse").attr("cx", 45).attr("cy", -5).attr("ry", 5)
      	.attr("rx", ({values:days}) => ellipseRadix(days, 5, 10))
 	.attr("fill", ({values:days}) => color(meanPerDay(days)));

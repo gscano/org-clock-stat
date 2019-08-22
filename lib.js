@@ -102,3 +102,24 @@ function weekdayShift(weekday) {
     default: return 2;
     }
 }
+
+function stringToColor(str) {
+    var R = 0, G = 0, B = 0;
+    const variability = Math.ceil(255 / str.length);
+
+    for(var i = 0; i < str.length; i++) {
+	var code = str.charCodeAt(i);
+	var value = variability * code;
+	switch(i % 3) {
+	case 0: R += value;
+	case 1: G += value;
+	case 2: B += value;
+	}
+    }
+
+    R = R % 255;
+    G = G % 255;
+    B = B % 255;
+
+    return `rgb(${R}, ${G}, ${B})`;
+}

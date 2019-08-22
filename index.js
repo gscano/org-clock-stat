@@ -1,27 +1,103 @@
 class Data {
     constructor() {
-	this.set = [];
+	this.max_task_id = 0;
+	
+	this.tasks = [];
+	this.tasks_selection = new Set();
+	
 	this.tags = new Set();
-	var tags_color = [];
-
-	this.task_selection = new Set();
-	this.tag_selection = new Set();
+	this.tags_count = new Map();
+	this.tags_color = new Map();
     }
 
+    collect_tags() {
+	function explore_tasks_for_tags(map, task) {
+	    if(task.hasOwnProperty('tags')) {
+		function explore_tags(tags, tag) {
+		    var count = tags.get(tag);
+		
+		    if(count === undefined)
+			count = 0;
+		    else
+			count = count.max;
+		    
+		    tags.set(tag, {"current": 0, "max": count + 1});
+
+		    return tags;
+		}
+
+		Array.from(task.tags).reduce(explore_tags, map);
+	    }
+	    
+	    return task.subtasks.reduce(explore_tasks_for_tags, map);
+	}
+
+	this.tasks.reduce(explore_tasks_for_tags, this.tags_count);
+	
+	Array.from(this.tags_count).sort((lhs,rhs) => lhs[0] > rhs[0]).forEach(([tag,_]) => this.tags.add(tag));
+	this.tags.forEach(tag => this.tags_color.set(tag, stringToColor(tag)));
+    }
+    
+    flip_tasks() {
+	var fill = this.tasks_selection.size == 0;
+	if(fill)
+	    d3.range(0, this.max_task_id + 1).forEach(task_id => this.tasks_selection.add(task_id));
+	else
+	    this.tasks_selection.clear();
+	return fill;
+    }
+
+    flip_tags() {
+	var clear = this.is_any_tag_selected();
+	this.tags.forEach(tag => this.flip_tag(tag, !clear));
+	return clear;
+    }
+
+    flip_tag(tag, on_off) {
+	var count = this.tags_count.get(tag);
+	count.current = on_off ? count.max : 0;
+	this.tags_count.set(tag, count);
+    }
+    
     after_parse() {
-	this.tags_color = ["#eeeeee"].concat(this.tags.map(tag => stringToColor(tag)));
+	this.collect_tags();
+	
+	this.flip_tasks();
+	this.flip_tags();
+    }
+
+    is_tag_selected(tag) {
+	var count = this.tags_count.get(tag);
+	return count.current == count.max;
+    }
+
+    is_any_tag_selected() {
+	var any = false;
+	this.tags_count.forEach((count, tag) => any |= count.current == count.max);
+	return any;
+    }
+
+    toggle_tag(tag, on_off) {
+	var count = this.tags_count.get(tag);
+	if(on_off)
+	    count.current = Math.min(count.current + 1, count.max);
+	else
+	    count.current = Math.max(count.current - 1, 0);
     }
 
     get_color_of_(tag) {
-	return this.tags_color[1 + this.tags.indexOf(tag)];
+	if(this.tags_color.has(tag))
+	   return this.tags_color.get(tag); 
+	else
+	    return '#eeeeee';
     }
 
-    get_color_of(tag) {
-	return this.tag_selection.has(tag) ? this.get_color_of_(tag) : '#eeeeee';
+    get_color_of(tag, force = false) {
+	return this.is_tag_selected(tag) || force ? '#eeeeee' : this.get_color_of_(tag);
     }
 
-    get_background_color_of(tag) {
-	return this.tag_selection.has(tag) ? '#eeeeee' : this.get_color_of_(tag);
+    get_background_color_of(tag, force = false) {
+	return this.is_tag_selected(tag) || force ? this.get_color_of_(tag) : '#eeeeee';
     }
 }
 
@@ -31,8 +107,8 @@ window.onload = function () {
     
     document.getElementById('file-input').addEventListener('change', readFile, false);
 
-    starting_date_picker = new Pikaday({ field: document.getElementById('starting-date') });
-    ending_date_picker = new Pikaday({ field: document.getElementById('ending-date') });
+    window.starting_date_picker = new Pikaday({ field: document.getElementById('starting-date') });
+    window.ending_date_picker = new Pikaday({ field: document.getElementById('ending-date')});
 
     d3.select('#average-hours').selectAll('option').data(d3.range(0,24)).enter()
 	.append('option').attr("value", hour => hour).text(hour => displayTwoDigits(hour));
@@ -49,10 +125,6 @@ window.onload = function () {
     document.getElementById('first-glance-weekdays').addEventListener('change', draw);
     document.getElementById('first-glance-months').addEventListener('change', draw);
     document.getElementById('first-glance-years').addEventListener('change', draw);
-
-    data = randomCalendarData("2016-07-24", 8*60);
-    
-    draw();//For demo only
 }
 
 function readFile(event) {
@@ -64,8 +136,6 @@ function readFile(event) {
 
 	window.data.after_parse();
 
-	console.log(window.data);
-
 	draw();
     }
 
@@ -74,43 +144,37 @@ function readFile(event) {
 
 function parse(data) {
 
-    data.tags = new Set(data.tags.split(':'));
-    data.tags.delete('');
-
-    window.data.tags = Array.from(new Set([...data.tags, ...window.data.tags])).sort();
-
     var parents = new Array(data.category)
-	.concat(data.parents.split('/').filter(function(value) { return 0 < value.length; } ))
+	.concat(data.parents.split('/').filter(value => 0 < value.length))
 	.concat(new Array(data.task));
 
-    var tasks = window.data.set;
+    var tasks = window.data.tasks;
     var task;
 
     for(let i = 0; i < parents.length; i++) {
 	var parent = parents[i];
 
-	task = tasks.find(function (e) { return e.name == parent; });
+	task = tasks.find(element => element.name == parent);
 
 	if(task === undefined) {
 	    tasks.push({"name": parent, "subtasks": []});
 
-	    tasks.sort(function (a,b) {
-		return a.hasOwnProperty('name') && b.hasOwnProperty('name') ?
-		    a.name.localeCompare(b.name) : true;
-	    });
+	    tasks.sort((a,b) => a.hasOwnProperty('name') && b.hasOwnProperty('name') ? a.name.localeCompare(b.name) : true);
 
-	    task = tasks.find(function (e) { return e.name == parent; });
+	    task = tasks.find(element => element.name == parent);
 	    task.id = parse.ID++;
+	    window.data.max_task_id = Math.max(window.data.max_task_id, task.id);
 	}
 
 	if(i + 1 < parents.length)
 	    tasks = task.subtasks;
     }
 
+    data.tags = new Set(data.tags.split(':').filter(tag => 0 < tag.length));
     if(!task.hasOwnProperty('tags'))
-	task.tags = Array.from(data.tags).sort();
+	task.tags = data.tags;
     else
-	task.tags = Array.from(new Set([...task.tags, ...data.tags])).sort();
+	data.tags.forEach(tag => task.tags.add(tag));
 
     if(!task.hasOwnProperty('effort'))
 	task.effort = data.effort;
@@ -126,6 +190,13 @@ function parse(data) {
 
 function draw() {
 
+    //Update issue
+    document.getElementById('tags').innerHTML = '';
+    document.getElementById('browser').innerHTML = '';
+    document.getElementById('calendar').innerHTML = '';
+    
+    console.log(window.data);
+    
     var target = parseInt(document.getElementById('average-hours').value) * 60
 	+ parseInt(document.getElementById('average-minutes').value);
 
@@ -136,28 +207,33 @@ function draw() {
     var hasFirstGlanceMonths = document.querySelector('#first-glance-months').checked;
     var hasFirstGlanceYears = document.querySelector('#first-glance-years').checked;
 
-    //reduceTasks(window.data.set)
+    var data = reduceTasks(window.data.tasks)
+    console.log(data)
     
-    //drawTags();
-    //drawBrowser();
+    drawTags();
+    drawBrowser();
     
-    drawCalendar(data, target,
-		 displayWeekends, weekendsAsBonus,
-		 hasFirstGlanceWeekdays, hasFirstGlanceMonths, hasFirstGlanceYears);
+    // drawCalendar(data, target,
+    // 		 displayWeekends, weekendsAsBonus,
+    // 		 hasFirstGlanceWeekdays, hasFirstGlanceMonths, hasFirstGlanceYears);
 }
 
 function drawTags() {
 
-    document.getElementById('tags').innerHTML = '';//Update issue
-
     d3.select('#tags').selectAll('ul')
-	.data(window.data.tags).enter()
+	.data(Array.from(window.data.tags).sort())
+	.enter()
 	.append('li')
 	.text(tag => tag)
-	.attr("tag-id", (_,id) => id)
-	.attr("is-selected", tag => window.data.tag_selection.has(tag))
+	.attr("is-selected", tag => window.data.is_tag_selected(tag))
 	.style("color", tag => window.data.get_color_of(tag))
 	.style("background-color", tag => window.data.get_background_color_of(tag))
+	.on("click", flipTag);
+
+    d3.select('#tags')
+	.insert("li", ":first-child")
+	.attr("toggled", !window.data.is_any_tag_selected())
+	.text("None")
 	.on("click", flipTags);
 }
 
@@ -170,20 +246,19 @@ function drawBrowser() {
 	    .text(task => task.name)
 	    .attr("class", "task")
 	    .attr("task-id", task => task.id)
-	    .attr("is-selected", task => window.data.task_selection.has(task.id))
+	    .attr("is-selected", task => window.data.tasks_selection.has(task.id))
 	    .attr("is-habit", task => task.ishabit ? "true" : "false")
 	    .on("click", flipTask);
 
-	li.filter(task => task.hasOwnProperty('tags') && 0 < task.tags.length)
+	li.filter(task => task.hasOwnProperty('tags') && 0 < task.tags.size)
 	    .append('ul').attr("class", "tags").selectAll('ul')
-	    .data(task => task.tags).enter()
+	    .data(task => Array.from(task.tags).sort().map(tag => [window.data.tasks_selection.has(task.id), tag]))
+	    .enter()
 	    .append('li')
-	    .text(d => d)
-	    .attr("tag-id", tag => window.data.tags.indexOf(tag))
-	    .attr("is-selected", tag => window.data.tag_selection.has(window.data.tags.indexOf(tag)))
-	    .style("color", tag => window.data.get_color_of(tag))
-	    .style("background-color", tag => window.data.get_background_color_of(tag))
-	    .on("click", flipTag);
+	    .text(([_,tag]) => tag)
+	    .attr("is-selected", ([selected,tag]) => selected)
+	    .style("color", ([selected,tag]) => window.data.get_color_of(tag, selected))
+	    .style("background-color", ([selected,tag]) => window.data.get_background_color_of(tag, selected));
 
 	if(!li.empty()) {
 	    ul = li.filter(task => 0 < task.subtasks.length)
@@ -195,11 +270,17 @@ function drawBrowser() {
 	}
     }
 
-    document.getElementById('browser').innerHTML = '';//Update issue
-
     d3.select("#browser").selectAll('ul')
-	.data(window.data.set).enter()
+	.data(window.data.tasks)
+	.enter()
 	.call(recurse);
+
+    d3.select("#browser")
+	.insert("li", ":first-child")
+	.text("None")
+	.attr("class", "task")
+	.attr("is-selected", window.data.tasks_selection.size == 0)
+	.on("click", flipTasks);
 }
 
 //const content = d3.nest().key(d => moment(d[0]).year()).key(d => moment(d[0]).month()).entries(data).reverse();
@@ -209,8 +290,6 @@ function drawCalendar(data, target,
 		      displayWeekends, weekendsAsBonus,
 		      hasFirstGlanceWeekdays, hasFirstGlanceMonths, hasFirstGlanceYears) {
 
-    document.getElementById('calendar').innerHTML = '';//Update issue
-    
     const weekdaysFormat = 'dddd';
     const monthFormat = 'MMM';
 
@@ -309,17 +388,21 @@ function drawCalendar(data, target,
 }
 
 function selectAllSubTasks(task) {
-    window.data.task_selection.add(task.id);
-    task.subtasks.forEach(function(task) { selectAllSubTasks(task); });
+    window.data.tasks_selection.add(task.id);
+    if(task.hasOwnProperty('tags'))
+	task.tags.forEach(tag => window.data.toggle_tag(tag, true));
+    task.subtasks.forEach(subtask => selectAllSubTasks(subtask));
 }
 
 function unselectAllSubTasks(task) {
-    window.data.task_selection.delete(task.id);
-    task.subtasks.forEach(function(task) { unselectAllSubTasks(task); });
+    window.data.tasks_selection.delete(task.id);
+    if(task.hasOwnProperty('tags'))
+	task.tags.forEach(tag => window.data.toggle_tag(tag, false));
+    task.subtasks.forEach(subtask => unselectAllSubTasks(subtask));
 }
 
 function flipTask(task) {
-    if(window.data.task_selection.has(task.id))
+    if(window.data.tasks_selection.has(task.id))
 	unselectAllSubTasks(task);
     else
 	selectAllSubTasks(task);
@@ -327,47 +410,52 @@ function flipTask(task) {
     draw();
 }
 
-function flipTags(tag) {
-    if(this.getAttribute("is-selected") == "true") {
-	this.setAttribute("is-selected", "false");
-	this.style.color = window.data.get_color_of(tag);
-	this.style.backgroundColor = '#eeeeee';
-    }
-    else {
-	this.setAttribute("is-selected", "true");
-	this.style.color = 'white';
-	this.style.backgroundColor = window.data.get_color_of(tag);
-    }
-
+function flipTasks() {
+    if(window.data.flip_tasks() ^ window.data.is_any_tag_selected())
+	window.data.flip_tags();
+    
     draw();
+}
+
+function forAllTasksWithTagDo(task, tag, action) {
+    if(task.hasOwnProperty('tags')
+       && task.tags.has(tag))
+	action(task.id);
+    task.subtasks.forEach(task => forAllTasksWithTagDo(task, tag, action));
+}
+
+function selectAllTasksWithTag(task, tag) {
+    return forAllTasksWithTagDo(task, tag, task_id => window.data.tasks_selection.add(task_id));
+}
+
+function unselectAllTasksWithTag(task, tag) {
+    return forAllTasksWithTagDo(task, tag, task_id => window.data.tasks_selection.delete(task_id));
 }
 
 function flipTag(tag) {
-    if(window.data.tag_selection.has(tag.id))
-	window.data.tag_selection.delete(tag.id);
-    else
-	window.data.tag_selection.add(tag.id);
+    if(window.data.is_tag_selected(tag)) {
+	window.data.flip_tag(tag, false);
+	window.data.tasks.forEach(task => unselectAllTasksWithTag(task, tag));
+    }
+    else {
+	window.data.flip_tag(tag, true);
+	window.data.tasks.forEach(task => selectAllTasksWithTag(task, tag));
+    }
 
     draw();
 }
 
-function stringToColor(str) {
-    var R = 0, G = 0, B = 0;
-    const variability = Math.ceil(255 / str.length);
+function forAllTasksWithATagDo(task, action) {
+    if(task.hasOwnProperty('tags') && 0 < task.tags.size)
+	action(task.id);
+    task.subtasks.forEach(task => forAllTasksWithATagDo(task, action));
+}
 
-    for(var i = 0; i < str.length; i++) {
-	var code = str.charCodeAt(i);
-	var value = variability * code;
-	switch(i % 3) {
-	case 0: R += value;
-	case 1: G += value;
-	case 2: B += value;
-	}
-    }
-
-    R = R % 255;
-    G = G % 255;
-    B = B % 255;
-
-    return `rgb(${R}, ${G}, ${B})`;
+function flipTags() {
+    if(window.data.flip_tags())
+	window.data.tasks.forEach(task => forAllTasksWithATagDo(task, task_id => window.data.tasks_selection.delete(task_id)));
+    else
+	window.data.tasks.forEach(task => forAllTasksWithATagDo(task, task_id => window.data.tasks_selection.add(task_id)));
+    
+    draw();
 }

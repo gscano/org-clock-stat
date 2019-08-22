@@ -17,6 +17,36 @@
     cursor: pointer;
 }
 
+#tags li[toggled=false]
+{
+    color: black;
+    background-color: #eeeeee;
+}
+
+#tags li[toggled=true]
+{
+    color: white;
+    background-color: black;
+}
+
+ul.tags
+{
+    display: inline;
+    float:   right;
+}
+
+ul.tags li
+{
+    display: inline;
+    border-radius: 25px;
+    padding: 5px;
+}
+
+#tags ul.tag li
+{
+    cursor: pointer;
+}
+
 #browser
 {
     width: 33%;
@@ -45,20 +75,6 @@
 .task[is-selected=false]
 {
     font-weight: normal;
-}
-
-ul.tags
-{
-    display: inline;
-    float:   right;
-}
-
-ul.tags li
-{
-    display: inline;
-    border-radius: 25px;
-    padding: 5px;
-    cursor: pointer;
 }
 
 #calendar

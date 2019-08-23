@@ -9,7 +9,7 @@ function make(date, duration) { return [date, moment.duration(duration).asMinute
 function verify(lhs, rhs) {
     console.log(lhs)
     assert(lhs.length == rhs.length);
-    
+
     for(var i = 0; i < lhs.length; ++i)
 	console.log(lhs[i][0] + ":" + lhs[i][1] + "  ~~~~~  " + rhs[i][0] + ":" + rhs[i][1]);
 
@@ -29,11 +29,11 @@ verify(extractDuration(d1, d4), [make("2019-08-09","04:35"),
 				 make("2019-08-11","23:41")]);
 
 verify(reduceDuration([[d1,d2],[d3,d4]]), [make("2019-08-09", "01:08"),
- 					     make("2019-08-10", "21:48"),
- 					     make("2019-08-11", "23:41")]);
+					     make("2019-08-10", "21:48"),
+					     make("2019-08-11", "23:41")]);
 verify(reduceDuration([[d1,d2], [d2,d3], [d3,d4]]), [make("2019-08-09", "04:35"),
- 						      make("2019-08-10", "24:00"),
- 						      make("2019-08-11", "23:41")]);
+						      make("2019-08-10", "24:00"),
+						      make("2019-08-11", "23:41")]);
 
 const t1 = {'entries': [[d1,d2]]};
 const t2 = {'entries': [[d3,d4]], 'subtasks': []};
@@ -65,4 +65,3 @@ assert(weekdayShift(1) == 0);
 
 moment.locale('ar');
 assert(weekdayShift(1) == 2);
-

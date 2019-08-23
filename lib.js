@@ -2,10 +2,10 @@
 function extractDuration(start_, end_) {
     var start = moment(start_);
     var end = moment(end_);
-    
+
     var result = [];
     const format = "YYYY-MM-DD";
-    
+
     if(start.isSame(end, 'day'))
 	result.push([start.format(format), moment.duration(end.diff(start)).asMinutes()]);
     else {
@@ -31,21 +31,21 @@ function reduceDurationSub(clocks) {
 
     function reduce(result, clock) {
 	var durations = extractDuration(clock[0], clock[1]);
-	
+
 	for(var i = 0; i < durations.length; ++i) {
 	    var [date, duration] = durations[i];
-	 
+
 	    var current = result.get(date);
 
 	    if(current !== undefined)
 		duration += current;
-	    
+
 	    result.set(date, duration);
 	}
 
 	return result;
     }
-    
+
     return clocks.reduce(reduce, new Map());
 }
 
@@ -95,7 +95,7 @@ function weekdayShift(weekday) {
     const firstIsoWeekday = moment().isoWeekday(moment.weekdays(true)[0]).isoWeekday();
 
     if(!(weekday < firstIsoWeekday)) return 0;
-    
+
     switch(firstIsoWeekday) {
     case 1: return 0;
     case 7: return 1;

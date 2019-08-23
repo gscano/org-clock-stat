@@ -15,6 +15,6 @@ function randomCalendarData(fromDate, max) {
 	data.push([date.format("YYYY-MM-DD"), getRandomDuration(max)]);
 	date.add(1, 'days');
     }
-    
+
     return data;
 }

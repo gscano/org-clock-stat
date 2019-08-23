@@ -18,23 +18,30 @@
     <script src="https://cdn.jsdelivr.net/npm/pikaday/pikaday.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pikaday/css/pikaday.css">
     -->
-    
+
     <script src="./index.js"></script>
     <script src="./lib.js"></script>
-    
+
     <script src="./data.js"></script>
-    
+
   </head>
 
   <body>
     <div id="config">
+
+      <span>
+	<span id="help">?</span>
+	<span id="copyright">©</span>
+	<span id="config">&#x2699;</span>
+
+      </span>
 
       <label for="file-input">File:</label>
       <input type="file" id="file-input"/>
 
       <label for="starting-date">From:</label>
       <input type="text" id="starting-date"/>
-      
+
       <label for="ending-date">To:</label>
       <input type="text" id="ending-date"/>
 
@@ -44,7 +51,7 @@
 	:
 	<select id="average-minutes"></select>
       </span>
-      
+
       <span id="weekends">
 	Display
 	<input type="checkbox" id="display-weekends"/>
@@ -54,7 +61,7 @@
 	<label for="weekends-as-bonus">bonus</label>
 	.
       </span>
-      
+
       <span id="first-glance">
 	First glance for
 	<input type="checkbox" id="first-glance-weekdays"/>
@@ -67,7 +74,7 @@
 	<label for="first-glance-years">years</label>
 	.
       </span>
-      
+
     </div>
 
     <div id="headlines">

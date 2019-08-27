@@ -49,9 +49,9 @@ function reduceDurationSub(clocks) {
     return clocks.reduce(reduce, new Map());
 }
 
-// [[String, String]] => [[String, Int]]
+// [[String, String]] => [String, Int]
 function reduceDuration(clocks) {
-    return new Array(...reduceDurationSub(clocks));
+    return Array.from(reduceDurationSub(clocks));
 }
 
 // [[String, String]] => {'substasks': [`Self`], 'entries': [[String, String]]} => [[String, String]]

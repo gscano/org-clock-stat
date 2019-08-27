@@ -126,22 +126,38 @@ window.onload = function () {
     document.getElementById('first-glance-months').addEventListener('change', draw);
     document.getElementById('first-glance-years').addEventListener('change', draw);
 
+    /* DEMO AND TESTS ONLY */
+    if(true) {
+	var projects = randomProjects(20,
+				      4, 4,
+				      0.35, 4,
+				      0.25, 30 * 60,
+				      0.1);
+	console.log(projects);
+	var data = randomData(projects, "2016-01-01", "2019-09-01", 100, 0.5);
+	console.log(data);
+	readData(data.join('\n'));
+    }
+    /* DEMO AND TESTS ONLY */
+
     draw();
 }
 
 function readFile(event) {
     var reader = new FileReader();
 
-    reader.onloadend = function(e) {
-	parse.ID = 0;
-	d3.csvParse(e.target.result, parse);
-
-	window.data.after_parse();
-
-	draw();
-    }
-
+    reader.onloadend = e => readData(e.target.result);
     reader.readAsText(event.target.files[0]);
+}
+
+function readData(input) {
+    parse.ID = 0;
+
+    d3.csvParse(input, parse);
+
+    window.data.after_parse();
+
+    draw();
 }
 
 function parse(data) {
@@ -215,9 +231,11 @@ function draw() {
     drawTags();
     drawBrowser();
 
-    // drawCalendar(data, target,
-    //		 displayWeekends, weekendsAsBonus,
-    //		 hasFirstGlanceWeekdays, hasFirstGlanceMonths, hasFirstGlanceYears);
+    var toto = randomCalendarData('2016-04-15', 10 * 60);
+    console.log(toto);
+    drawCalendar(toto, target,
+		 displayWeekends, weekendsAsBonus,
+		 hasFirstGlanceWeekdays, hasFirstGlanceMonths, hasFirstGlanceYears);
 }
 
 function drawTags() {
@@ -285,9 +303,6 @@ function drawBrowser() {
 	.on("click", flipTasks);
 }
 
-//const content = d3.nest().key(d => moment(d[0]).year()).key(d => moment(d[0]).month()).entries(data).reverse();
-//console.log(content)
-
 function drawCalendar(data, target,
 		      displayWeekends, weekendsAsBonus,
 		      hasFirstGlanceWeekdays, hasFirstGlanceMonths, hasFirstGlanceYears) {
@@ -305,8 +320,8 @@ function drawCalendar(data, target,
     const interMonthSpace = 0.5;
     const interDaySpace = 1;
 
-    const sumDay = ([date,value]) => (displayWeekends || weekendsAsBonus) ? value : (isWeekday(moment(date).isoWeekday()) ? value : 0);
-    const countDays = days => days.reduce((accu, day) => accu + dayFilter(moment(day[0]).isoWeekday()), 0);
+    const sumDay = ({"date":date,"duration":duration}) => (displayWeekends || weekendsAsBonus) ? duration : (isWeekday(moment(date).isoWeekday()) ? duration : 0);
+    const countDays = days => days.reduce((accu, day) => accu + dayFilter(moment(day.date).isoWeekday()), 0);
 
     const color = d3.scaleLinear().domain([0,target]).range(["white", "green"]);
 
@@ -315,7 +330,7 @@ function drawCalendar(data, target,
     const ellipseRadix = (days, radix, max) => Math.min(radix  * meanPerDay(days) / sigmForDay(days), max);
 
     //Data
-    const years = d3.nest().key(d => moment(d[0]).year()).entries(data).reverse();
+    const years = d3.nest().key(d => moment(d.date).year()).entries(data).reverse();
 
     //Drawings
     const svg = d3.selectAll('div#calendar').append('svg');
@@ -340,7 +355,7 @@ function drawCalendar(data, target,
     function weekdayGridY(weekday) { return (weekday - weekdaysShift(weekday)) * 1.05 * cellSize; }
 
     const weekday_ = weekday.selectAll("g")
-	  .data(({values:days}) => d3.nest().key(([date,_]) => moment(date).weekday()).entries(days).filter(({key:weekday}) => dayFilter(moment().weekday(weekday).isoWeekday())))
+	  .data(({values:days}) => d3.nest().key(({"date":date}) => moment(date).weekday()).entries(days).filter(({key:weekday}) => dayFilter(moment().weekday(weekday).isoWeekday())))
 	  .join("g")
 	  .attr("transform", ({key:weekday}) => `translate(3, ${weekdayGridY(weekday)})`);
 
@@ -353,9 +368,9 @@ function drawCalendar(data, target,
     const month = year.append("g").attr("class", "calendar-month").attr("transform", "translate(70,0)");
 
     const month_ = month.selectAll("g")
-	  .data(({values:days}) => d3.nest().key(([date,_]) => moment(date).month() + 1).entries(days).reverse())
+	  .data(({values:days}) => d3.nest().key(({"date":date}) => moment(date).month() + 1).entries(days).reverse())
 	  .join('g')
-	  .attr("transform", ({values:days}) => `translate(${dayGridX(moment(days[0][0]).startOf('month'))},0)`);
+	  .attr("transform", ({values:days}) => `translate(${dayGridX(moment(days[0].date).startOf('month'))},0)`);
 
     month_.append("text")
 	.text(({key:month}) => moment().month(month - 1).format(monthFormat))
@@ -381,12 +396,12 @@ function drawCalendar(data, target,
     }
 
     days.selectAll("rect")
-	.data(({values:days}) => days.filter(([date,_]) => dayFilter(moment(date).isoWeekday())))
-	.join("rect")
+    .data(({values:days}) => days.filter(({"date":date}) => dayFilter(moment(date).isoWeekday())))
+    .join("rect")
 	.attr("width", cellSize).attr("height",  cellSize)
-	.attr("transform", ([date,_]) => `translate(${dayGridX(date)},${dayGridY(date)})`)
-	.attr("fill", ([_,duration]) => color(duration))
-	.append("title").text(([date,duration]) => date + " " + displayDuration(duration));
+	.attr("transform", ({"date":date}) => `translate(${dayGridX(date)},${dayGridY(date)})`)
+	.attr("fill", ({"duration":duration}) => color(duration))
+	.append("title").text(({"date":date,"duration":duration}) => date + " " + displayDuration(duration));
 }
 
 function selectAllSubTasks(task) {

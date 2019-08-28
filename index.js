@@ -1,13 +1,20 @@
 class Data {
     constructor() {
-	this.max_task_id = 0;
+	this.maxTaskId = 0;
+
+	this.firstDate = null;
+	this.lastDate = null;
 
 	this.tasks = [];
-	this.tasks_selection = new Set();
+	this.flattenedTasks = [];
+	this.selectedTasks = new Set();
 
 	this.tags = new Set();
-	this.tags_count = new Map();
-	this.tags_color = new Map();
+	this.tagsCount = new Map();
+	this.tagsColor = new Map();
+
+	this.hardTasksFilter = null;
+	this.hardTasks = [];
     }
 
     collect_tags() {
@@ -32,18 +39,18 @@ class Data {
 	    return task.subtasks.reduce(explore_tasks_for_tags, map);
 	}
 
-	this.tasks.reduce(explore_tasks_for_tags, this.tags_count);
+	this.tasks.reduce(explore_tasks_for_tags, this.tagsCount);
 
-	Array.from(this.tags_count).sort((lhs,rhs) => lhs[0] > rhs[0]).forEach(([tag,_]) => this.tags.add(tag));
-	this.tags.forEach(tag => this.tags_color.set(tag, stringToColor(tag)));
+	Array.from(this.tagsCount).sort((lhs,rhs) => lhs[0] > rhs[0]).forEach(([tag,_]) => this.tags.add(tag));
+	this.tags.forEach(tag => this.tagsColor.set(tag, stringToColor(tag)));
     }
 
     flip_tasks() {
-	var fill = this.tasks_selection.size == 0;
+	var fill = this.selectedTasks.size == 0;
 	if(fill)
-	    d3.range(0, this.max_task_id + 1).forEach(task_id => this.tasks_selection.add(task_id));
+	    d3.range(0, this.maxTaskId + 1).forEach(task_id => this.selectedTasks.add(task_id));
 	else
-	    this.tasks_selection.clear();
+	    this.selectedTasks.clear();
 	return fill;
     }
 
@@ -54,12 +61,17 @@ class Data {
     }
 
     flip_tag(tag, on_off) {
-	var count = this.tags_count.get(tag);
+	var count = this.tagsCount.get(tag);
 	count.current = on_off ? count.max : 0;
-	this.tags_count.set(tag, count);
+	this.tagsCount.set(tag, count);
     }
 
     after_parse() {
+	this.flattenedTasks = flattenTasks(this.tasks);
+
+	this.firstDate = this.flattenedTasks.reduce((accu, {start:start}) => accu.isBefore(moment(start)) ? accu : moment(start), moment()).toDate();
+	this.lastDate = this.flattenedTasks.reduce((accu, {end:end}) => accu.isAfter(moment(end)) ? accu : moment(end), moment()).toDate();
+
 	this.collect_tags();
 
 	this.flip_tasks();
@@ -67,18 +79,18 @@ class Data {
     }
 
     is_tag_selected(tag) {
-	var count = this.tags_count.get(tag);
+	var count = this.tagsCount.get(tag);
 	return count.current == count.max;
     }
 
     is_any_tag_selected() {
 	var any = false;
-	this.tags_count.forEach((count, tag) => any |= count.current == count.max);
+	this.tagsCount.forEach((count, tag) => any |= count.current == count.max);
 	return any;
     }
 
     toggle_tag(tag, on_off) {
-	var count = this.tags_count.get(tag);
+	var count = this.tagsCount.get(tag);
 	if(on_off)
 	    count.current = Math.min(count.current + 1, count.max);
 	else
@@ -86,8 +98,8 @@ class Data {
     }
 
     get_color_of_(tag) {
-	if(this.tags_color.has(tag))
-	   return this.tags_color.get(tag);
+	if(this.tagsColor.has(tag))
+	   return this.tagsColor.get(tag);
 	else
 	    return '#eeeeee';
     }
@@ -103,12 +115,10 @@ class Data {
 
 window.onload = function () {
 
-    window.data = new Data();
-
     document.getElementById('file-input').addEventListener('change', readFile, false);
 
-    window.starting_date_picker = new Pikaday({ field: document.getElementById('starting-date') });
-    window.ending_date_picker = new Pikaday({ field: document.getElementById('ending-date')});
+    window.startingDatePicker = new Pikaday({ field: document.getElementById('starting-date'), onSelect: draw });
+    window.endingDatePicker = new Pikaday({ field: document.getElementById('ending-date'), onSelect: draw });
 
     d3.select('#average-hours').selectAll('option').data(d3.range(0,24)).enter()
 	.append('option').attr("value", hour => hour).text(hour => displayTwoDigits(hour));
@@ -133,14 +143,12 @@ window.onload = function () {
 				      0.35, 4,
 				      0.25, 30 * 60,
 				      0.1);
-	console.log(projects);
-	var data = randomData(projects, "2016-01-01", "2019-09-01", 100, 0.5);
-	console.log(data);
+	console.log("projets");console.log(projects);
+	var data = randomData(projects, "2019-01-01", "2019-09-01", 100, 0.5);
+	console.log("random data");console.log(data);
 	readData(data.join('\n'));
     }
     /* DEMO AND TESTS ONLY */
-
-    draw();
 }
 
 function readFile(event) {
@@ -151,11 +159,20 @@ function readFile(event) {
 }
 
 function readData(input) {
+
+    window.data = new Data();
+
     parse.ID = 0;
 
-    d3.csvParse(input, parse);
+    d3.csvParse(input, parse, 2);
 
     window.data.after_parse();
+
+    window.startingDatePicker.config({ minDate: window.data.firstDate, maxDate: window.data.lastDate });
+    window.endingDatePicker.config({ minDate: window.data.firstDate, maxDate: window.data.lastDate });
+
+    window.startingDatePicker.setDate(window.data.firstDate);
+    window.endingDatePicker.setDate(window.data.lastDate);
 
     draw();
 }
@@ -181,7 +198,7 @@ function parse(data) {
 
 	    task = tasks.find(element => element.name == parent);
 	    task.id = parse.ID++;
-	    window.data.max_task_id = Math.max(window.data.max_task_id, task.id);
+	    window.data.maxTaskId = Math.max(window.data.maxTaskId, task.id);
 	}
 
 	if(i + 1 < parents.length)
@@ -203,7 +220,7 @@ function parse(data) {
     if(!task.hasOwnProperty('entries'))
 	task.entries = []
 
-    task.entries.push([data.start, data.end]);
+    task.entries.push([new Date(data.start), new Date(data.end)]);
 }
 
 function draw() {
@@ -212,8 +229,6 @@ function draw() {
     document.getElementById('tags').innerHTML = '';
     document.getElementById('browser').innerHTML = '';
     document.getElementById('calendar').innerHTML = '';
-
-    console.log(window.data);
 
     var target = parseInt(document.getElementById('average-hours').value) * 60
 	+ parseInt(document.getElementById('average-minutes').value);
@@ -225,15 +240,18 @@ function draw() {
     var hasFirstGlanceMonths = document.querySelector('#first-glance-months').checked;
     var hasFirstGlanceYears = document.querySelector('#first-glance-years').checked;
 
-    var data = reduceTasks(window.data.tasks)
+    window.data.hardTasksTasksFilter = createFilter(window.data.selectedTasks, window.startingDatePicker.getDate(), window.endingDatePicker.getDate());
+    window.data.hardTasks = window.data.flattenedTasks.filter(({id:id,date:date}) => window.data.hardTasksTasksFilter(id, date));
+
+    console.log("data");console.log(window.data);
+
+    var data = reduceDuration(window.data.hardTasks);
     console.log(data)
 
     drawTags();
     drawBrowser();
 
-    var toto = randomCalendarData('2016-04-15', 10 * 60);
-    console.log(toto);
-    drawCalendar(toto, target,
+    drawCalendar(data, target,
 		 displayWeekends, weekendsAsBonus,
 		 hasFirstGlanceWeekdays, hasFirstGlanceMonths, hasFirstGlanceYears);
 }
@@ -266,13 +284,13 @@ function drawBrowser() {
 	    .text(task => task.name)
 	    .attr("class", "task")
 	    .attr("task-id", task => task.id)
-	    .attr("is-selected", task => window.data.tasks_selection.has(task.id))
+	    .attr("is-selected", task => window.data.selectedTasks.has(task.id))
 	    .attr("is-habit", task => task.ishabit ? "true" : "false")
 	    .on("click", flipTask);
 
 	li.filter(task => task.hasOwnProperty('tags') && 0 < task.tags.size)
 	    .append('ul').attr("class", "tags").selectAll('ul')
-	    .data(task => Array.from(task.tags).sort().map(tag => [window.data.tasks_selection.has(task.id), tag]))
+	    .data(task => Array.from(task.tags).sort().map(tag => [window.data.selectedTasks.has(task.id), tag]))
 	    .enter()
 	    .append('li')
 	    .text(([_,tag]) => tag)
@@ -299,7 +317,7 @@ function drawBrowser() {
 	.insert("li", ":first-child")
 	.text("None")
 	.attr("class", "task")
-	.attr("is-selected", window.data.tasks_selection.size == 0)
+	.attr("is-selected", window.data.selectedTasks.size == 0)
 	.on("click", flipTasks);
 }
 
@@ -401,25 +419,25 @@ function drawCalendar(data, target,
 	.attr("width", cellSize).attr("height",  cellSize)
 	.attr("transform", ({"date":date}) => `translate(${dayGridX(date)},${dayGridY(date)})`)
 	.attr("fill", ({"duration":duration}) => color(duration))
-	.append("title").text(({"date":date,"duration":duration}) => date + " " + displayDuration(duration));
+	.append("title").text(({"date":date,"duration":duration}) => moment(date).format('YYYY-MM-DD') + " " + displayDuration(duration));
 }
 
 function selectAllSubTasks(task) {
-    window.data.tasks_selection.add(task.id);
+    window.data.selectedTasks.add(task.id);
     if(task.hasOwnProperty('tags'))
 	task.tags.forEach(tag => window.data.toggle_tag(tag, true));
     task.subtasks.forEach(subtask => selectAllSubTasks(subtask));
 }
 
 function unselectAllSubTasks(task) {
-    window.data.tasks_selection.delete(task.id);
+    window.data.selectedTasks.delete(task.id);
     if(task.hasOwnProperty('tags'))
 	task.tags.forEach(tag => window.data.toggle_tag(tag, false));
     task.subtasks.forEach(subtask => unselectAllSubTasks(subtask));
 }
 
 function flipTask(task) {
-    if(window.data.tasks_selection.has(task.id))
+    if(window.data.selectedTasks.has(task.id))
 	unselectAllSubTasks(task);
     else
 	selectAllSubTasks(task);
@@ -442,11 +460,11 @@ function forAllTasksWithTagDo(task, tag, action) {
 }
 
 function selectAllTasksWithTag(task, tag) {
-    return forAllTasksWithTagDo(task, tag, task_id => window.data.tasks_selection.add(task_id));
+    return forAllTasksWithTagDo(task, tag, task_id => window.data.selectedTasks.add(task_id));
 }
 
 function unselectAllTasksWithTag(task, tag) {
-    return forAllTasksWithTagDo(task, tag, task_id => window.data.tasks_selection.delete(task_id));
+    return forAllTasksWithTagDo(task, tag, task_id => window.data.selectedTasks.delete(task_id));
 }
 
 function flipTag(tag) {
@@ -470,9 +488,9 @@ function forAllTasksWithATagDo(task, action) {
 
 function flipTags() {
     if(window.data.flip_tags())
-	window.data.tasks.forEach(task => forAllTasksWithATagDo(task, task_id => window.data.tasks_selection.delete(task_id)));
+	window.data.tasks.forEach(task => forAllTasksWithATagDo(task, task_id => window.data.selectedTasks.delete(task_id)));
     else
-	window.data.tasks.forEach(task => forAllTasksWithATagDo(task, task_id => window.data.tasks_selection.add(task_id)));
+	window.data.tasks.forEach(task => forAllTasksWithATagDo(task, task_id => window.data.selectedTasks.add(task_id)));
 
     draw();
 }

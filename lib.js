@@ -1,60 +1,9 @@
-// String => String => [[String, Int]]
-function extractDuration(start_, end_) {
-    var start = moment(start_);
-    var end = moment(end_);
-
-    var result = [];
-    const format = "YYYY-MM-DD";
-
-    if(start.isSame(end, 'day'))
-	result.push([start.format(format), moment.duration(end.diff(start)).asMinutes()]);
-    else {
-	var current = start.clone().endOf('day');
-	result.push([current.format(format),
-		     moment.duration(current.diff(start)).add(1, 'milliseconds').asMinutes()]);
-	current.add(1, 'days').startOf('day');
-
-	while(!current.isSame(end, 'day')) {
-	    result.push([current.format(format), moment.duration(1, 'day').asMinutes()]);
-	    current.add(1, 'days');
-	    console.log(current)
-	}
-
-	result.push([current.format(format), moment.duration(end.diff(current)).asMinutes()]);
-    }
-
-    return result;
+// [{id:Integer, substasks:[Self], entries:[[Date, Date]]}] => [{id:Integer, start:String, end:String}] => [{id:Integer, start:String, end:String}]
+function flattenTasks(tasks, result = []) {
+    return tasks.reduce(flattenTask_, result);
 }
 
-// [[String, String]] => Map(String => Int)
-function reduceDurationSub(clocks) {
-
-    function reduce(result, clock) {
-	var durations = extractDuration(clock[0], clock[1]);
-
-	for(var i = 0; i < durations.length; ++i) {
-	    var [date, duration] = durations[i];
-
-	    var current = result.get(date);
-
-	    if(current !== undefined)
-		duration += current;
-
-	    result.set(date, duration);
-	}
-
-	return result;
-    }
-
-    return clocks.reduce(reduce, new Map());
-}
-
-// [[String, String]] => [String, Int]
-function reduceDuration(clocks) {
-    return Array.from(reduceDurationSub(clocks));
-}
-
-// [[String, String]] => {'substasks': [`Self`], 'entries': [[String, String]]} => [[String, String]]
+// {substasks:[Self], entries:[[Date, Date]]} => [[Date, Date]] => [{id:Integer, start:String, end:String}]
 function flattenTask(task, result = []) {
     return flattenTask_(result, task);
 }
@@ -62,7 +11,9 @@ function flattenTask(task, result = []) {
 function flattenTask_(result, task) {
 
     if(task.hasOwnProperty('entries'))
-	result.push(...task.entries);
+	result.push(...task.entries.map(entry => ({id: task.id,
+						   start: entry[0],
+						   end: entry[1]})));
 
     if(task.hasOwnProperty('subtasks'))
 	task.subtasks.reduce(flattenTask_, result);
@@ -70,14 +21,118 @@ function flattenTask_(result, task) {
     return result;
 }
 
-// [{'substasks': [`Self`], 'entries': [[String, String]]}] => [[String, String]] => [[String, String]]
-function flattenTasks(tasks, result = []) {
-    return tasks.reduce(flattenTask_, result);
+// Set(Integer) => Date => Date => Date => String => (Integer => Date => Boolean)
+function createFilter(ids, from, to, specific = null, moment_ = 'date') {
+    from = moment(from);
+    to = moment(to);
+    specific = specific == null ? null : moment(specific);
+
+    function filter(id, date) {
+	date = moment(date);
+	return ids.has(id)
+	    && date.isSameOrAfter(from)
+	    && date.isSameOrBefore(to)
+	    && (specific == null ? true : date.isSame(specific, moment_));
+    }
+
+    return filter;
 }
 
-// [{'substasks': [`Self`], 'entries': [[String, String]]}] => [[String, String]] => [[String, String]]
-function reduceTasks(tasks) {
-    return reduceDuration(flattenTasks(tasks));
+// Date => Date => [[Date, Int]]
+function extractDaysDuration(start_, end_) {
+    var start = moment(start_);
+    var end = moment(end_);
+
+    var result = [];
+    const format = "YYYY-MM-DD";
+
+    if(start.isSame(end, 'day'))
+	result.push([new Date(start.format(format)), moment.duration(end.diff(start)).asMinutes()]);
+    else {
+	var current = start.clone().endOf('day');
+	result.push([new Date(current.format(format)),
+		     moment.duration(current.diff(start)).add(1, 'milliseconds').asMinutes()]);
+	current.add(1, 'days').startOf('day');
+
+	while(!current.isSame(end, 'day')) {
+	    result.push([new Date(current.format(format)), moment.duration(1, 'day').asMinutes()]);
+	    current.add(1, 'days');
+	    console.log(current)
+	}
+
+	result.push([new Date(current.format(format)), moment.duration(end.diff(current)).asMinutes()]);
+    }
+
+    return result;
+}
+
+// [{start:Date, end:Date}] => {date:Date, duration:Int}
+function reduceDuration(clocks) {
+
+    function reduce(result, {start:start, end:end}) {
+
+	function reduce(result, [date, duration]) {
+
+	    var current = result.get(date.getTime());
+
+	    if(current !== undefined)
+		duration += current;
+
+	    result.set(date.getTime(), duration);
+
+	    return result;
+	}
+
+	return extractDaysDuration(start, end).reduce(reduce, result);
+    }
+
+    return Array.from(clocks.reduce(reduce, new Map()))
+	.map(([date,duration]) => ({date: new Date(date), duration: duration}));
+}
+
+// Date => Date => [interval:Int, weight:Int]]
+function extractDaysInterval(start_, end_, minutes = 15) {
+
+    const start = moment(start_);
+    const end = moment(end_);
+
+    var time = Math.floor(end.diff(start, 'minutes'));
+
+    const firstInterval = start.hours() * 60 + start.minutes();
+    const maxInterval = Math.floor(24 * 60 / minutes);
+
+    var interval = Math.floor(firstInterval / minutes);
+    var weight = minutes - firstInterval % minutes;
+
+    var result = [{interval: interval, weight: weight}];
+    ++interval;
+    time -= weight;
+
+    while(minutes < time) {
+	result.push({interval: interval, weight: minutes});
+	time -= minutes;
+	if(interval == maxInterval) interval = 0;
+	else ++interval;
+    }
+
+    if(0 < time)
+	result.push({interval: interval, weight: time});
+
+    return result;
+}
+
+// [{start:Date,end:Date}] => {interval:Integer,weight:Integer}
+function reduceInterval(clocks, minutes = 15) {
+
+    function reduce(result, {start:start, end:end}) {
+
+	extractDaysInterval(start, end, minutes)
+	    .forEach(({interval:i,weight:weight}) => result[i] += weight);
+
+	return result;
+    }
+
+    return clocks.reduce(reduce, Array(Math.floor(24*60/minutes) + 1).fill(0));
 }
 
 // Integer => String([0-9][0-9])

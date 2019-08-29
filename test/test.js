@@ -82,16 +82,24 @@ function interval(i,j,first,last,span) {
     var value = [];
 
     for(var k = i; k <= j; ++k)
-	value.push({interval: k, weight: (k == i ? first : (k == j ? last : span))});
+	value.push(k == i ? first : (k == j ? last : span));
 
     return value;
 }
 
-verify(extractDaysInterval(d1, d2, 15), interval(77,82,5,3,15));
-verify(extractDaysInterval(d2, d3, 28), interval(44,51,27,28,28).concat(interval(0,4,28,4,28)));
-verify(extractDaysInterval(d2, d3, 15), interval(82,96,12,15,15).concat(interval(0,7,15,12,15)));
+verify(extractDaysInterval("2019-08-09 00:00", "2019-08-09 1:36", 28, Array(5).fill(0)), [28,28,28,12,0]);
+verify(extractDaysInterval("2019-08-09 00:00", "2019-08-09 02:12", 35, Array(5).fill(0)), [35,35,35,27,0]);
+verify(extractDaysInterval("2019-08-09 20:42", "2019-08-09 23:53", 49, Array(30).fill(0)),
+       Array(25).fill(0).concat([32,49,49,49,12]));
 
-console.log(reduceInterval([duration(d1,d2),duration(d3,d4)]));
+verify(extractDaysInterval(d1, d2, 15, Array(Math.ceil(24 * 60 / 15)).fill(0)),
+       Array(77).fill(0).concat(interval(77,82,5,3,15)).concat(Array(13).fill(0)));
+verify(extractDaysInterval(d2, d3, 15, Array(Math.ceil(24 * 60 / 15)).fill(0)),
+       interval(0,8,15,12,15).concat(Array(83 - 10).fill(0)).concat(interval(82,95,12,15,15)));
+verify(extractDaysInterval(d2, d3, 28, Array(Math.ceil(24 * 60 / 28)).fill(0)),
+       interval(0,4,28,20,28).concat(Array(52 - 13).fill(0)).concat(interval(44,51,27,12,28)));
+verify(extractDaysInterval(d1, d3, 35, Array(Math.ceil(24 * 60 / 35)).fill(0)),
+       [35,35,35,27].concat(Array(29).fill(0)).concat([25,35,35,35,35,35,35,35,5]));
 /* INTERVAL */
 
 /* LOCALE */

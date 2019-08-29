@@ -57,7 +57,6 @@ function extractDaysDuration(start_, end_) {
 	while(!current.isSame(end, 'day')) {
 	    result.push([new Date(current.format(format)), moment.duration(1, 'day').asMinutes()]);
 	    current.add(1, 'days');
-	    console.log(current)
 	}
 
 	result.push([new Date(current.format(format)), moment.duration(end.diff(current)).asMinutes()]);
@@ -90,8 +89,8 @@ function reduceDuration(clocks) {
 	.map(([date,duration]) => ({date: new Date(date), duration: duration}));
 }
 
-// Date => Date => [interval:Int, weight:Int]]
-function extractDaysInterval(start_, end_, minutes = 15) {
+// Date => Date => Integer => [] => [Integer]
+function extractDaysInterval(start_, end_, minutes = 15, result = Array(minutes).fill(0)) {
 
     const start = moment(start_);
     const end = moment(end_);
@@ -99,40 +98,53 @@ function extractDaysInterval(start_, end_, minutes = 15) {
     var time = Math.floor(end.diff(start, 'minutes'));
 
     const firstInterval = start.hours() * 60 + start.minutes();
-    const maxInterval = Math.floor(24 * 60 / minutes);
 
     var interval = Math.floor(firstInterval / minutes);
     var weight = minutes - firstInterval % minutes;
 
-    var result = [{interval: interval, weight: weight}];
-    ++interval;
+    result[interval] += weight;
     time -= weight;
 
+    const lastInterval = 24 * 60 % minutes;
+
     while(minutes < time) {
-	result.push({interval: interval, weight: minutes});
-	time -= minutes;
-	if(interval == maxInterval) interval = 0;
-	else ++interval;
+	++interval;
+
+	if(lastInterval != 0 && interval == result.length - 1) {
+	    result[interval] += lastInterval;
+	    time -= lastInterval;
+	}
+	else {
+	    if(interval == result.length) interval = 0;
+
+	    result[interval] += minutes;
+	    time -= minutes;
+	}
     }
 
-    if(0 < time)
-	result.push({interval: interval, weight: time});
+    if(0 < time) {
+	if(interval == result.length - 1) interval = 0;
+	result[interval + 1] += time;
+    }
 
     return result;
 }
 
-// [{start:Date,end:Date}] => {interval:Integer,weight:Integer}
+// [{start:Date,end:Date}] => [Integer]
 function reduceInterval(clocks, minutes = 15) {
+    return clocks.reduce((result, {start:start, end:end}) => extractDaysInterval(start, end, minutes, result),
+			 Array(Math.ceil(24 * 60 / minutes)).fill(0));
+}
 
-    function reduce(result, {start:start, end:end}) {
+// [{date:Date}] => {'days':Integer,'weekdays':Integer}
+function extractDaysInfo(data) {
+    return data.reduce((accu, {date: date}) => {
+	accu.days += 1;
+	accu.weekdays += (1 <= moment(date).isoWeekday() && moment(date).isoWeekday() <= 5);
 
-	extractDaysInterval(start, end, minutes)
-	    .forEach(({interval:i,weight:weight}) => result[i] += weight);
-
-	return result;
-    }
-
-    return clocks.reduce(reduce, Array(Math.floor(24*60/minutes) + 1).fill(0));
+	return accu;
+    },
+		       ({days: 0, weekdays:0}));
 }
 
 // Integer => String([0-9][0-9])
@@ -140,9 +152,24 @@ function displayTwoDigits(number) {
     return (number < 10 ? "0" : "") + number;
 }
 
+function displayMinutesAsHour(minutes) {
+    return moment().startOf('day').minutes(minutes).format('HH:mm')
+}
+
 // Integer => String([0-2][0-9]:[0-5][0-9])
-function displayDuration(minutes) {
-    return displayTwoDigits(Math.floor(minutes / 60)) + ':' + displayTwoDigits(minutes % 60);
+function displayDuration(minutes, sep = ':') {
+    return displayTwoDigits(Math.floor(minutes / 60)) + sep + displayTwoDigits(minutes % 60);
+}
+
+// Interger => String
+function displayLongDuration(minutes, minutesOfDay = 24 * 60) {
+    var result = "";
+
+    const days = Math.floor(minutes / minutesOfDay);
+    if(0 < days)
+	result += days + "d";
+
+    return result + displayDuration(minutes % minutesOfDay);
 }
 
 // Integer => Integer

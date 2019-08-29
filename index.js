@@ -117,8 +117,8 @@ window.onload = function () {
 
     document.getElementById('file-input').addEventListener('change', readFile, false);
 
-    window.startingDatePicker = new Pikaday({ field: document.getElementById('starting-date'), onSelect: draw });
-    window.endingDatePicker = new Pikaday({ field: document.getElementById('ending-date'), onSelect: draw });
+    window.startingDatePicker = new Pikaday({ field: document.getElementById('starting-date') });
+    window.endingDatePicker = new Pikaday({ field: document.getElementById('ending-date') });
 
     d3.select('#average-hours').selectAll('option').data(d3.range(0,24)).enter()
 	.append('option').attr("value", hour => hour).text(hour => displayTwoDigits(hour));
@@ -142,9 +142,10 @@ window.onload = function () {
 				      4, 4,
 				      0.35, 4,
 				      0.25, 30 * 60,
-				      0.1);
+				      0.5);
 	console.log("projets");console.log(projects);
-	var data = randomData(projects, "2019-01-01", "2019-09-01", 100, 0.5);
+	var activityRandomizer = createActivityRandomizer(0.005, 8, 0.8, 12.5, 0.2, 13.5, 0.7, 17, 0.1, 5);
+	var data = randomData(projects, "2018-01-01", "2019-09-01", activityRandomizer, 100);
 	console.log("random data");console.log(data);
 	readData(data.join('\n'));
     }
@@ -226,6 +227,7 @@ function parse(data) {
 function draw() {
 
     //Update issue
+    document.getElementById('day').innerHTML = '';
     document.getElementById('tags').innerHTML = '';
     document.getElementById('browser').innerHTML = '';
     document.getElementById('calendar').innerHTML = '';
@@ -245,15 +247,85 @@ function draw() {
 
     console.log("data");console.log(window.data);
 
-    var data = reduceDuration(window.data.hardTasks);
-    console.log(data)
+    const step = 15;
+    var day = reduceInterval(window.data.hardTasks, step);
+    console.log("day"); console.log(day);
+
+    var calendar = reduceDuration(window.data.hardTasks);
+    console.log("calendar"); console.log(calendar);
+
+    var totalTime = d3.sum(calendar, day => day.duration)
+
+    var days = extractDaysInfo(calendar);
+    console.log("days"); console.log(days);
+
+    drawDay(day, step, weekendsAsBonus ? days.weekdays : days.days, totalTime);
 
     drawTags();
     drawBrowser();
 
-    drawCalendar(data, target,
+    drawCalendar(calendar, target,
 		 displayWeekends, weekendsAsBonus,
 		 hasFirstGlanceWeekdays, hasFirstGlanceMonths, hasFirstGlanceYears);
+}
+
+function drawDay(data, step, numberOfDays, totalTime) {
+
+    var sameMinuteDeviation = d3.sum(data) - totalTime;
+
+    const defaultStep = 15;
+
+    var cellSize = 16;
+    if(step < defaultStep)
+	cellSize /= (defaultStep / step);
+
+    const interSize = 1;
+
+    const color = d3.scaleLinear().domain([0,step]).range(["white", "green"]);
+
+    const heat = d3.select("div#day").append("svg");
+
+    heat.attr('width', 100 + data.length * (cellSize + interSize))
+	.attr('height', 40 + cellSize)
+
+
+    heat.append("g")
+	.append("text").text(numberOfDays + " x")
+	.attr("transform", `translate(15,${7 + cellSize})`)
+	.append("title")
+	.text("Minutes counted twice a day: " + Math.floor(sameMinuteDeviation / numberOfDays) + "  " + (100 * sameMinuteDeviation / totalTime).toFixed(2) + "%");
+
+    const shift = 50;
+
+    heat.append("g").selectAll("rect")
+	.data(data)
+	.join("rect")
+	.attr("width", cellSize).attr("height", cellSize)
+	.attr("transform", (_,i) => `translate(${shift + i * (cellSize + interSize) + 20}, 10)`)
+	.attr("fill", duration => color(Math.floor(duration/numberOfDays)))
+	.append("title")
+	.text((duration,i) => displayMinutesAsHour(i * step) + "-"
+	      + displayMinutesAsHour(i == data.length - 1 ? 0 : (i + 1) * step) + " "
+	      + displayLongDuration(Math.floor(duration/numberOfDays)) + " "
+	      + Math.floor(duration/numberOfDays/(i == data.length - 1 ? 24 * 60 % step : step)*100) + "%");
+
+    const hours = [...Array(25).keys()].filter(index => step <= 20 ? true : index % Math.ceil(4 * step / 60) == 0);
+
+    heat.append("g")
+	.selectAll("line")
+	.data(hours)
+	.join("line")
+	.attr("transform", i => `translate(${shift + (i == 24 ? data.length : i * 60 / step) * (cellSize + interSize) + 20}, 40)`)
+	.attr("stroke", "black")
+	.attr("x1", 0).attr("x2", 0)
+	.attr("y1", 0).attr("y2", -10);
+
+    heat.append("g").attr("class", "hours")
+	.selectAll("text")
+	.data(hours)
+	.join("text")
+	.attr("transform", i => `translate(${shift + (i == 24 ? data.length : i * 60 /step) * (cellSize + interSize) - 3}, 50)`)
+	.text(hours => moment().startOf('day').hours(hours).format('HH:mm'));
 }
 
 function drawTags() {
@@ -414,8 +486,8 @@ function drawCalendar(data, target,
     }
 
     days.selectAll("rect")
-    .data(({values:days}) => days.filter(({"date":date}) => dayFilter(moment(date).isoWeekday())))
-    .join("rect")
+	.data(({values:days}) => days.filter(({"date":date}) => dayFilter(moment(date).isoWeekday())))
+	.join("rect")
 	.attr("width", cellSize).attr("height",  cellSize)
 	.attr("transform", ({"date":date}) => `translate(${dayGridX(date)},${dayGridY(date)})`)
 	.attr("fill", ({"duration":duration}) => color(duration))

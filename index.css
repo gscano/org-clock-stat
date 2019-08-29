@@ -9,6 +9,22 @@
     display: inline;
 }
 
+#day
+{
+    width: 100%;
+    text-align: center;
+}
+
+#heat .hours
+{
+    font-size: 13px;
+}
+
+#headlines
+{
+    float:left;
+}
+
 #tags li
 {
     display: inline;

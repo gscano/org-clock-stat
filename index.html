@@ -32,37 +32,32 @@
       <span>
 	<span id="help">?</span>
 	<span id="copyright">©</span>
-	<span id="config">&#x2699;</span>
-
       </span>
 
-      <label for="file-input">File:</label>
-      <input type="file" id="file-input"/>
-
-      <label for="starting-date">From:</label>
-      <input type="text" id="starting-date"/>
-
-      <label for="ending-date">To:</label>
-      <input type="text" id="ending-date"/>
-
-      <span id="average">
-	Average:
+      <span>
+	Average
 	<select id="average-hours"></select>
 	:
 	<select id="average-minutes"></select>
+	per day.
       </span>
 
-      <span id="weekends">
+      <span>
+	<label for="pace">Pace day by</label>
+	<input type="text" id="day-pace" size="2"/>
+	minutes.
+      </span>
+
+      <span>
 	Display
 	<input type="checkbox" id="display-weekends"/>
 	<label for="display-weekends">weekends</label>
 	, or count as
 	<input type="checkbox" id="weekends-as-bonus"/>
-	<label for="weekends-as-bonus">bonus</label>
-	.
+	<label for="weekends-as-bonus">bonus.</label>
       </span>
 
-      <span id="first-glance">
+      <span>
 	First glance for
 	<input type="checkbox" id="first-glance-weekdays"/>
 	<label for="first-glance-weekdays">weekdays</label>
@@ -71,14 +66,24 @@
 	<label for="first-glance-months">months</label>
 	and
 	<input type="checkbox" id="first-glance-years"/>
-	<label for="first-glance-years">years</label>
-	.
+	<label for="first-glance-years">years.</label>
       </span>
 
     </div>
 
-    <div id="day"></div>
+    <div id="select">
+      <label for="file-input">With file</label>
+      <input type="file" id="file-input"/>
+
+      <label for="starting-date">from</label>
+      <input type="text" id="starting-date" size="10"/>
+
+      <label for="ending-date">to</label>
+      <input type="text" id="ending-date" size="10"/>
+      .
     </div>
+
+    <div id="day"></div>
 
     <div id="headlines">
       <ul id="tags"></ul>

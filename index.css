@@ -1,23 +1,18 @@
-#first-glance
+#config
 {
-    display: inline;
-    float: right;
+    display: flex;
+    justify-content: space-between;
 }
 
-#average
+#select
 {
-    display: inline;
+    text-align:left;
 }
 
 #day
 {
     width: 100%;
     text-align: center;
-}
-
-#heat .hours
-{
-    font-size: 13px;
 }
 
 #headlines
@@ -102,19 +97,4 @@ ul.tags li
 {
     font-weight: bold;
     text-anchor: end;
-}
-
-.calendar-weekday
-{
-
-}
-
-.calendar-month
-{
-
-}
-
-.calendar-day
-{
-
 }

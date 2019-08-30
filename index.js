@@ -115,11 +115,6 @@ class Data {
 
 window.onload = function () {
 
-    document.getElementById('file-input').addEventListener('change', readFile, false);
-
-    window.startingDatePicker = new Pikaday({ field: document.getElementById('starting-date') });
-    window.endingDatePicker = new Pikaday({ field: document.getElementById('ending-date') });
-
     d3.select('#average-hours').selectAll('option').data(d3.range(0,24)).enter()
 	.append('option').attr("value", hour => hour).text(hour => displayTwoDigits(hour));
     document.getElementById('average-hours').value = "7";
@@ -129,12 +124,20 @@ window.onload = function () {
     document.getElementById('average-minutes').value = "0";
     document.getElementById('average-minutes').addEventListener('change', draw);
 
+    document.getElementById('day-pace').value = 30;
+    document.getElementById('day-pace').addEventListener('change', draw);
+
     document.getElementById('display-weekends').addEventListener('change', draw);
     document.getElementById('weekends-as-bonus').addEventListener('change', draw);
 
     document.getElementById('first-glance-weekdays').addEventListener('change', draw);
     document.getElementById('first-glance-months').addEventListener('change', draw);
     document.getElementById('first-glance-years').addEventListener('change', draw);
+
+    document.getElementById('file-input').addEventListener('change', readFile, false);
+
+    window.startingDatePicker = new Pikaday({ field: document.getElementById('starting-date') });
+    window.endingDatePicker = new Pikaday({ field: document.getElementById('ending-date') });
 
     /* DEMO AND TESTS ONLY */
     if(true) {
@@ -235,6 +238,8 @@ function draw() {
     var target = parseInt(document.getElementById('average-hours').value) * 60
 	+ parseInt(document.getElementById('average-minutes').value);
 
+    var dayPace = parseInt(document.getElementById('day-pace').value);
+
     var displayWeekends = document.querySelector('#display-weekends').checked;
     var weekendsAsBonus = document.querySelector('#weekends-as-bonus').checked;
 
@@ -247,8 +252,7 @@ function draw() {
 
     console.log("data");console.log(window.data);
 
-    const step = 15;
-    var day = reduceInterval(window.data.hardTasks, step);
+    var day = reduceInterval(window.data.hardTasks, dayPace);
     console.log("day"); console.log(day);
 
     var calendar = reduceDuration(window.data.hardTasks);
@@ -259,10 +263,9 @@ function draw() {
     var days = extractDaysInfo(calendar);
     console.log("days"); console.log(days);
 
-    drawDay(day, step, weekendsAsBonus ? days.weekdays : days.days, totalTime);
+    drawDay(day, dayPace, weekendsAsBonus ? days.weekdays : days.days, totalTime);
 
-    drawTags();
-    drawBrowser();
+    drawHeadlines();
 
     drawCalendar(calendar, target,
 		 displayWeekends, weekendsAsBonus,
@@ -283,25 +286,25 @@ function drawDay(data, step, numberOfDays, totalTime) {
 
     const color = d3.scaleLinear().domain([0,step]).range(["white", "green"]);
 
-    const heat = d3.select("div#day").append("svg");
+    const day = d3.select("div#day").append("svg");
 
-    heat.attr('width', 100 + data.length * (cellSize + interSize))
+    day.attr('width', 100 + data.length * (cellSize + interSize))
 	.attr('height', 40 + cellSize)
+	.attr("transform", `translate(0,10)`);
 
-
-    heat.append("g")
+    day.append("g")
 	.append("text").text(numberOfDays + " x")
-	.attr("transform", `translate(15,${7 + cellSize})`)
+	.attr("transform", `translate(15,${cellSize - 3})`)
 	.append("title")
 	.text("Minutes counted twice a day: " + Math.floor(sameMinuteDeviation / numberOfDays) + "  " + (100 * sameMinuteDeviation / totalTime).toFixed(2) + "%");
 
     const shift = 50;
 
-    heat.append("g").selectAll("rect")
+    day.append("g").selectAll("rect")
 	.data(data)
 	.join("rect")
 	.attr("width", cellSize).attr("height", cellSize)
-	.attr("transform", (_,i) => `translate(${shift + i * (cellSize + interSize) + 20}, 10)`)
+	.attr("transform", (_,i) => `translate(${shift + i * (cellSize + interSize) + 20}, 0)`)
 	.attr("fill", duration => color(Math.floor(duration/numberOfDays)))
 	.append("title")
 	.text((duration,i) => displayMinutesAsHour(i * step) + "-"
@@ -311,21 +314,26 @@ function drawDay(data, step, numberOfDays, totalTime) {
 
     const hours = [...Array(25).keys()].filter(index => step <= 20 ? true : index % Math.ceil(4 * step / 60) == 0);
 
-    heat.append("g")
+    day.append("g")
 	.selectAll("line")
 	.data(hours)
 	.join("line")
-	.attr("transform", i => `translate(${shift + (i == 24 ? data.length : i * 60 / step) * (cellSize + interSize) + 20}, 40)`)
+	.attr("transform", i => `translate(${shift + (i == 24 ? data.length : i * 60 / step) * (cellSize + interSize) + 20}, 30)`)
 	.attr("stroke", "black")
 	.attr("x1", 0).attr("x2", 0)
 	.attr("y1", 0).attr("y2", -10);
 
-    heat.append("g").attr("class", "hours")
+    day.append("g").attr("class", "hours")
 	.selectAll("text")
 	.data(hours)
 	.join("text")
-	.attr("transform", i => `translate(${shift + (i == 24 ? data.length : i * 60 /step) * (cellSize + interSize) - 3}, 50)`)
+	.attr("transform", i => `translate(${shift + (i == 24 ? data.length : i * 60 /step) * (cellSize + interSize) - 3}, 40)`)
 	.text(hours => moment().startOf('day').hours(hours).format('HH:mm'));
+}
+
+function drawHeadlines() {
+    drawTags();
+    drawBrowser();
 }
 
 function drawTags() {
@@ -438,7 +446,8 @@ function drawCalendar(data, target,
     if(hasFirstGlanceYears)
 	year_.append("ellipse").attr("cx", 20).attr("cy", -6).attr("ry", 8)
 	.attr("rx", ({values:days}) => ellipseRadix(days, 8, 16))
-	.attr("fill", ({values:days}) => color(meanPerDay(days)));
+	.attr("fill", ({values:days}) => color(meanPerDay(days)))
+	.append("title").text(({values:values}) => displayDuration(Math.floor(d3.sum(values, ({duration:duration}) => duration) / values.length)));
 
     const weekday = year.append("g").attr("class", "calendar-weekday").attr("transform", `translate(-30,${textScale * cellSize})`);
 
@@ -453,7 +462,8 @@ function drawCalendar(data, target,
     if(hasFirstGlanceWeekdays)
 	weekday_.append("ellipse").attr("cx", -10).attr("cy", -6).attr("ry", 4)
 	.attr("rx", ({values:days}) => ellipseRadix(days, 4, 8))
-	.attr("fill", ({values:days}) => color(meanPerDay(days)));
+	.attr("fill", ({values:days}) => color(meanPerDay(days)))
+	.append("title").text(({values:values}) => displayDuration(Math.floor(d3.sum(values, ({duration:duration}) => duration) / values.length)));
 
     const month = year.append("g").attr("class", "calendar-month").attr("transform", "translate(70,0)");
 
@@ -467,7 +477,8 @@ function drawCalendar(data, target,
     if(hasFirstGlanceMonths)
 	month_.append("ellipse").attr("cx", 45).attr("cy", -5).attr("ry", 5)
 	.attr("rx", ({values:days}) => ellipseRadix(days, 5, 10))
-	.attr("fill", ({values:days}) => color(meanPerDay(days)));
+	.attr("fill", ({values:days}) => color(meanPerDay(days)))
+	.append("title").text(({values:values}) => displayLongDuration(Math.floor(d3.sum(values, ({duration:duration}) => duration) / values.length)));
 
     const days = year.append("g")
 	  .attr("class", "calendar-day")

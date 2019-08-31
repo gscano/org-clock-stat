@@ -124,7 +124,7 @@ window.onload = function () {
     document.getElementById('average-minutes').value = "0";
     document.getElementById('average-minutes').addEventListener('change', draw);
 
-    document.getElementById('day-pace').value = 30;
+    document.getElementById('day-pace').value = 15;
     document.getElementById('day-pace').addEventListener('change', draw);
 
     document.getElementById('display-weekends').addEventListener('change', draw);
@@ -148,7 +148,7 @@ window.onload = function () {
 				      0.5);
 	console.log("projets");console.log(projects);
 	var activityRandomizer = createActivityRandomizer(0.005, 8, 0.8, 12.5, 0.2, 13.5, 0.7, 17, 0.1, 5);
-	var data = randomData(projects, "2018-01-01", "2019-09-01", activityRandomizer, 100);
+	var data = randomData(projects, "2016-01-01", "2019-09-01", activityRandomizer, 100);
 	console.log("random data");console.log(data);
 	readData(data.join('\n'));
     }
@@ -248,7 +248,7 @@ function draw() {
     var hasFirstGlanceYears = document.querySelector('#first-glance-years').checked;
 
     window.data.hardTasksTasksFilter = createFilter(window.data.selectedTasks, window.startingDatePicker.getDate(), window.endingDatePicker.getDate());
-    window.data.hardTasks = window.data.flattenedTasks.filter(({id:id,date:date}) => window.data.hardTasksTasksFilter(id, date));
+    window.data.hardTasks = window.data.flattenedTasks.filter(({id:id,date:date}) => return window.data.hardTasksTasksFilter(id, date));
 
     console.log("data");console.log(window.data);
 
@@ -258,7 +258,7 @@ function draw() {
     var calendar = reduceDuration(window.data.hardTasks);
     console.log("calendar"); console.log(calendar);
 
-    var totalTime = d3.sum(calendar, day => day.duration)
+    var totalTime = d3.sum(calendar, day => day.duration);
 
     var days = extractDaysInfo(calendar);
     console.log("days"); console.log(days);
@@ -294,7 +294,7 @@ function drawDay(data, step, numberOfDays, totalTime) {
 
     day.append("g")
 	.append("text").text(numberOfDays + " x")
-	.attr("transform", `translate(15,${cellSize - 3})`)
+	.attr("transform", `translate(15,14)`)
 	.append("title")
 	.text("Minutes counted twice a day: " + Math.floor(sameMinuteDeviation / numberOfDays) + "  " + (100 * sameMinuteDeviation / totalTime).toFixed(2) + "%");
 

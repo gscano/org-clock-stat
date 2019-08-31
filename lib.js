@@ -205,3 +205,18 @@ function stringToColor(str) {
 
     return `rgb(${R}, ${G}, ${B})`;
 }
+
+function load(path) {
+    var xhr = new XMLHttpRequest();
+
+    xhr.open('GET', path);
+
+    xhr.onload = function() {
+	if (xhr.status === 200)
+	    document.getElementById(id).innerHTML = xhr.responseText;
+	else
+	    document.getElementById(id).innerHTML = "Cannot load '" + path + "' (" + xhr.status + ").";
+    };
+
+    xhr.send();
+}

@@ -1,19 +1,19 @@
 // Project: [String: category, [String]: parents, String: tasks,
 //           [String]: tags, Boolean: isHabit, String: effort]
 
-// Integer => [Project] => Integer => [String] => Integer => Integer => Float[0,1] => Integer => Float[0,1] => Integer => Float[0,1]
-function randomProject(count, projects,
+// Integer => [Project] => Integer => [String] => Integer => Integer => Float[0,1] => Integer => Float[0,1] => Integer => Float[0,1] => Integer
+function randomProject(headlines, projects,
 		       projectID, parents, maxDepth, maxChildren,
 		       tagsProbability, maxTags,
 		       effortProbability, maxEffort,
 		       isHabitProbability)
 {
-    if(projects.length == count) return;
+    if(headlines == 0) return 0;
 
     var hasDepth = parents.length < Math.floor(Math.random() * maxDepth);
-    var children = Math.floor(Math.random() * maxChildren) + 1;
+    var children = Math.min(headlines, Math.floor(Math.random() * maxChildren) + 1);
 
-    if(!hasDepth) for(var child = 1; child <= children; ++child) {
+    if(!hasDepth) for(var child = 1; 0 < headlines && child <= children; ++child, --headlines) {
 
 	var project = [];
 
@@ -35,23 +35,20 @@ function randomProject(count, projects,
 	project.push((Math.random() <= effortProbability) ? displayDuration(Math.floor(Math.random() * maxEffort)) : null);
 
 	projects.push(project);
-
-	if(projects.length == count) return;
-
-	--children;
     }
-    else for(var child = 1; child <= children; ++child) {
+    else for(var child = 1; 0 < headlines && child <= children; ++child) {
 
 	var localParents = [...parents];
 	localParents.push(String.fromCharCode('A'.charCodeAt(0) + parents.length) + child);
 
-	randomProject(count, projects,
-		      projectID, localParents, maxDepth, maxChildren,
-		      tagsProbability, maxTags,
-		      effortProbability, maxEffort,
-		      isHabitProbability);
+	headlines = randomProject(headlines - 1, projects,
+				  projectID, localParents, maxDepth, maxChildren,
+				  tagsProbability, maxTags,
+				  effortProbability, maxEffort,
+				  isHabitProbability);
     }
 
+    return headlines;
 }
 
 // {headlines: Integer, maxDepth: Integer, maxChildren: Integer, tagsProbability: Float[0,1], maxTags: Integer, effortProbability: Float[0,1], maxEffort: Integer, isHabitProbability: Float[0,1]} => [Project]
@@ -65,11 +62,11 @@ function randomProjects({headlines: headlines,
     var projectID = 1;
 
     while(projects.length < headlines)
-	randomProject(headlines, projects,
-		      projectID++, [], maxDepth, maxChildren,
-		      tagsProbability, maxTags,
-		      effortProbability, maxEffort,
-		      isHabitProbability);
+	headlines = randomProject(headlines, projects,
+				  projectID++, [], maxDepth, maxChildren,
+				  tagsProbability, maxTags,
+				  effortProbability, maxEffort,
+				  isHabitProbability);
 
     return projects;
 }
@@ -120,7 +117,7 @@ function randomData(projects, from, to, activityProbability, max = 100) {
 	    var line = [];
 
 	    line.push(project[2]);
-	    line.push(project[1].join('/'));
+	    line.push(project[1].slice(0, Math.min(Math.floor(Math.random() * project[1].length^2), project[1].length)).join('/'));
 	    line.push(project[0]);
 
 	    line.push(from.format('YYYY-MM-DD HH:mm'));

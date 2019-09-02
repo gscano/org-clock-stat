@@ -20,37 +20,38 @@ const d3 = "2019-08-10 02:12";
 const d4 = "2019-08-11 23:41";
 
 /* FLATTEN */
-const t1 = {'entries': [[d1,d2]]};
+const t1 = {'entries': [[d1,d2]], 'subtasks': []};
 const t2 = {'entries': [[d3,d4]], 'subtasks': []};
 const t3 = {'entries': [[d1,d2]],
-	    'subtasks': [{'entries': [[d2,d3]]}] };
+	    'subtasks': [{'entries': [[d2,d3]], 'subtasks' : []}] };
 const t4 = {'entries': [[d1,d2]],
 	    'subtasks': [{'entries': [[d2,d3]],
-			  'subtasks': [{'entries': [[d3,d4]]}] }] };
+			  'subtasks': [{'entries': [[d3,d4]], 'subtasks': []}] }] };
 
 function bundle(start,end) { return {"id":undefined,"start":start,"end":end}; }
 
-verify(flattenTask(t1), [bundle(d1,d2)]);
-verify(flattenTask(t2), [bundle(d3,d4)]);
-verify(flattenTask(t3), [bundle(d1,d2),bundle(d2,d3)]);
-verify(flattenTask(t4), [bundle(d1,d2), bundle(d2,d3), bundle(d3,d4)]);
+verify(flattenTask([], t1), [bundle(d1,d2)]);
+verify(flattenTask([], t2), [bundle(d3,d4)]);
+verify(flattenTask([], t3), [bundle(d1,d2),bundle(d2,d3)]);
+verify(flattenTask([], t4), [bundle(d1,d2), bundle(d2,d3), bundle(d3,d4)]);
 
 verify(flattenTasks([t1,t2]), [bundle(d1,d2),bundle(d3,d4)]);
 /* FLATTEN */
 
-/* FILTER */
+/* FILTER & SPLIT */
+function raw(id, start, end) { return {id:id, start:start, end:end}; };
+
 var ids = new Set([2,3]);
-var filter = createFilter(ids, "2019-08-09", "2019-08-10");
-assert(!filter(1, d1));
-assert( filter(2, d1));
-assert(!filter(3, d4));
-var filter = createFilter(ids, "2019-08-09", "2019-08-10", ("2019-08-09"));
-assert( filter(3, (d2)));
-assert(!filter(3, (d3)));
-var filter = createFilter(ids, "2019-08-09", "2019-08-10", ("2019-01-23"), 'year');
-assert(!filter(3, ("2020-04-23")));
-assert( filter(3, (d2)));;
-/* FILTER */
+var filter = createSplittingFilter(ids, "2019-08-09", "2019-08-09");
+verify(filter(raw(1, d1, d2)), []);
+verify(filter(raw(2, d1, d2)), [raw(2, d1, d2)]);
+var filter = createSplittingFilter(ids, "2019-08-09", "2019-08-10");
+verify(filter(raw(2, d1, d2)), [raw(2, d1, d2)]);
+verify(filter(raw(2, d2, d3)), [raw(2, d2, "2019-08-10 00:00"), raw(2, "2019-08-10 00:00", d3)]);
+verify(filter(raw(3, d2, d4)), [raw(3, d2, "2019-08-10 00:00"), raw(3, "2019-08-10 00:00", "2019-08-11 00:00")])
+var filter = createSplittingFilter(ids, "2019-08-09", "2019-08-10", "2019-08-09");
+verify(filter(raw(2, d2, d4)), [raw(2, d2, "2019-08-10 00:00")]);
+/* FILTER & SPLIT */
 
 /* DURATION */
 function make(date, duration) { return [new Date(date), moment.duration(duration).asMinutes()]; }

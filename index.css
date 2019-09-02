@@ -4,6 +4,11 @@
     justify-content: space-between;
 }
 
+#config #first-glance
+{
+    cursor: pointer;
+}
+
 #select
 {
     text-align:center;

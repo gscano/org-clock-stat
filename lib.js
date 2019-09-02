@@ -1,41 +1,59 @@
-// [{id:Integer, substasks:[Self], entries:[[Date, Date]]}] => [{id:Integer, start:String, end:String}] => [{id:Integer, start:String, end:String}]
+// [{id:Integer, substasks:[Self], entries:[[Date, Date]]}] => [{id:Integer, start:Date, end:Date}] => [{id:Integer, start:Date, end:Date}]
 function flattenTasks(tasks, result = []) {
-    return tasks.reduce(flattenTask_, result);
+    return tasks.reduce(flattenTask, result);
 }
 
-// {substasks:[Self], entries:[[Date, Date]]} => [[Date, Date]] => [{id:Integer, start:String, end:String}]
-function flattenTask(task, result = []) {
-    return flattenTask_(result, task);
-}
+// [[Date, Date]] => {substasks:[Self], entries:[[Date, Date]]} => [{id:Integer, start:Date, end:Date}]
+function flattenTask(result, task) {
 
-function flattenTask_(result, task) {
+    task.entries.reduce((result, entry) => {
+	result.push({id: task.id, start: entry[0], end: entry[1]});
+	return result;
+    }, result);
 
-    if(task.hasOwnProperty('entries'))
-	result.push(...task.entries.map(entry => ({id: task.id,
-						   start: entry[0],
-						   end: entry[1]})));
-
-    if(task.hasOwnProperty('subtasks'))
-	task.subtasks.reduce(flattenTask_, result);
+    task.subtasks.reduce(flattenTask, result);
 
     return result;
 }
 
-// Set(Integer) => Date => Date => Date => String => (Integer => Date => Boolean)
-function createFilter(ids, from, to, specific = null, moment_ = 'date') {
+// Set(Integer) => Date => Date => Date => String[year month week isoWeek day] => ({id:Integer, start:Date, end:Date} => [{id:Integer, start:Date, end:Date}])
+function createSplittingFilter(ids, from, to, specific = null, moment_ = 'date') {
     from = moment(from);
     to = moment(to);
     specific = specific == null ? null : moment(specific);
 
-    function filter(id, date) {
-	date = moment(date);
-	return ids.has(id)
-	    && date.isSameOrAfter(from)
-	    && date.isSameOrBefore(to)
-	    && (specific == null ? true : date.isSame(specific, moment_));
-    }
+    if(to.hours() == 0 && to.minutes() == 0) to.add(1, 'days').startOf('day');
 
-    return filter;
+    const format = 'YYYY-MM-DD HH:mm';
+
+    // {id:Integer, start:Date, end:Date} => [{id:Integer, start:Date, end:Date}]
+    return function (data) {
+	var result = [];
+
+	if(ids.has(data.id)) {
+	    var start = moment.max(moment(data.start), from);
+	    var end = moment.min(moment(data.end), to);
+	    var current = moment.min(start.clone().add(1, 'days').startOf('day'), end);
+
+	    if(specific == null || (specific != null && start.isSame(specific, moment_)))
+		result.push({id: data.id, start: start.format(format), end: current.format(format)});
+
+	    while(!current.isSame(end, 'day')) {
+		if(specific == null || (specific != null && current.isSame(specific, moment_)))
+		    result.push({id: data.id,
+				 start: current.format(format),
+				 end: current.add(1, 'days').format(format)});
+		else
+		    current.add(1, 'days');
+	    }
+
+	    if(!current.isSame(end)
+	       && specific == null || (specific != null && end.isSame(specific, moment_)))
+		result.push({id: data.id, start: current.format(format), end: end.format(format)});
+	}
+
+	return result;
+    }
 }
 
 // Date => Date => [[Date, Int]]
@@ -54,7 +72,7 @@ function extractDaysDuration(start_, end_) {
 		     moment.duration(current.diff(start)).add(1, 'milliseconds').asMinutes()]);
 	current.add(1, 'days').startOf('day');
 
-	while(!current.isSame(end, 'day')) {
+	while(current.isBefore(end) && !current.isSame(end, 'day')) {
 	    result.push([new Date(current.format(format)), moment.duration(1, 'day').asMinutes()]);
 	    current.add(1, 'days');
 	}
@@ -68,7 +86,7 @@ function extractDaysDuration(start_, end_) {
 // [{start:Date, end:Date}] => {date:Date, duration:Int}
 function reduceDuration(clocks) {
 
-    function reduce(result, {start:start, end:end}) {
+    function reduce(result, {start: start, end: end}) {
 
 	function reduce(result, [date, duration]) {
 
@@ -89,8 +107,8 @@ function reduceDuration(clocks) {
 	.map(([date,duration]) => ({date: new Date(date), duration: duration}));
 }
 
-// Date => Date => Integer => [] => [Integer]
-function extractDaysInterval(start_, end_, minutes = 15, result = Array(minutes).fill(0)) {
+// Date => Date => Integer => [Integer]
+function extractDaysInterval(start_, end_, minutes, result) {
 
     const start = moment(start_);
     const end = moment(end_);
@@ -132,7 +150,8 @@ function extractDaysInterval(start_, end_, minutes = 15, result = Array(minutes)
 
 // [{start:Date,end:Date}] => [Integer]
 function reduceInterval(clocks, minutes = 15) {
-    return clocks.reduce((result, {start:start, end:end}) => extractDaysInterval(start, end, minutes, result),
+    return clocks.reduce((result, {start: start, end: end}) =>
+			 extractDaysInterval(start, end, minutes, result),
 			 Array(Math.ceil(24 * 60 / minutes)).fill(0));
 }
 
@@ -144,7 +163,7 @@ function extractDaysInfo(data) {
 
 	return accu;
     },
-		       ({days: 0, weekdays:0}));
+		       ({days: 0, weekdays: 0}));
 }
 
 // Integer => String([0-9][0-9])

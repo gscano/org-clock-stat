@@ -54,18 +54,18 @@ function randomProject(count, projects,
 
 }
 
-// Integer => Integer => Integer => Float[0,1] => Integer => Float[0,1] => Integer => Float[0,1] => [Project]
-function randomProjects(count,
-			maxDepth, maxChildren,
-			tagsProbability, maxTags,
-			effortProbability, maxEffort,
-			isHabitProbability) {
+// {headlines: Integer, maxDepth: Integer, maxChildren: Integer, tagsProbability: Float[0,1], maxTags: Integer, effortProbability: Float[0,1], maxEffort: Integer, isHabitProbability: Float[0,1]} => [Project]
+function randomProjects({headlines: headlines,
+			 maxDepth: maxDepth, maxChildren: maxChildren,
+			 tagsProbability: tagsProbability, maxTags: maxTags,
+			 effortProbability: effortProbability, maxEffort: maxEffort,
+			 isHabitProbability: isHabitProbability}) {
 
     var projects = [];
     var projectID = 1;
 
-    while(projects.length < count)
-	randomProject(count, projects,
+    while(projects.length < headlines)
+	randomProject(headlines, projects,
 		      projectID++, [], maxDepth, maxChildren,
 		      tagsProbability, maxTags,
 		      effortProbability, maxEffort,
@@ -74,13 +74,13 @@ function randomProjects(count,
     return projects;
 }
 
-// Float[0,1] => Integer => Float[0,1] => Integer => Float[0,1] => Integer => Float[0,1] => Integer => Float[0,1] => Integer => (Moment => Boolean)
-function createActivityRandomizer(beforeWorkProbability,
-				  morning, morningProbability,
-				  lunch, lunchProbability,
-				  afternoon, afternoonProbability,
-				  afterWork, afterWorkProbability,
-				  weekendShift) {
+// {beforeWorkProbability: Float[0,1], morning: Integer, morningProbability: Float[0,1], lunch: Integer, lunchProbability: Float[0,1], afternoon: Integer, afternoonProbability: Float[0,1], evening: Integer, eveningProbability: Float[0,1], weekendShift: Integer} => (Moment => Boolean)
+function createActivityRandomizer({beforeWorkProbability: beforeWorkProbability,
+				   morning: morning, morningProbability: morningProbability,
+				   lunch: lunch, lunchProbability: lunchProbability,
+				   afternoon: afternoon, afternoonProbability: afternoonProbability,
+				   evening: evening, eveningProbability: eveningProbability,
+				   weekendShift: weekendShift}) {
     return function (date) {
 	var rand = Math.random();
 	if(date.isoWeekday() == 6 || date.isoWeekday() == 7) rand *= weekendShift;
@@ -92,10 +92,10 @@ function createActivityRandomizer(beforeWorkProbability,
 	    return rand < morningProbability;
 	else if(hours < afternoon)
 	    return rand < lunchProbability;
-	else if(hours < afterWork)
+	else if(hours < evening)
 	    return rand < afternoonProbability;
 	else
-	    return rand < afterWorkProbability;
+	    return rand < eveningProbability;
     }
 }
 
@@ -111,7 +111,7 @@ function randomData(projects, from, to, activityProbability, max = 100) {
 
 	var duration = from.clone();
 
-	duration.add(Math.floor(Math.random() * max), 'minutes');
+	duration.add(Math.floor(Math.random() * max) + 1, 'minutes');
 
 	if(activityProbability(from)) {
 	    var index = Math.floor(Math.random() * projects.length);

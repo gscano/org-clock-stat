@@ -25,10 +25,10 @@ class Data {
 	}
     }
 
-    collect_tags() {
-	function explore_tasks_for_tags(map, task) {
+    collectTags() {
+	function exploreTasksForTags(map, task) {
 	    if(task.hasOwnProperty('tags')) {
-		function explore_tags(tags, tag) {
+		function exploreTags(tags, tag) {
 		    var count = tags.get(tag);
 
 		    if(count === undefined)
@@ -41,19 +41,19 @@ class Data {
 		    return tags;
 		}
 
-		Array.from(task.tags).reduce(explore_tags, map);
+		Array.from(task.tags).reduce(exploreTags, map);
 	    }
 
-	    return task.subtasks.reduce(explore_tasks_for_tags, map);
+	    return task.subtasks.reduce(exploreTasksForTags, map);
 	}
 
-	this.tasks.reduce(explore_tasks_for_tags, this.tagsCount);
+	this.tasks.reduce(exploreTasksForTags, this.tagsCount);
 
 	Array.from(this.tagsCount).sort((lhs,rhs) => lhs[0] > rhs[0]).forEach(([tag,_]) => this.tags.add(tag));
 	this.tags.forEach(tag => this.tagsColor.set(tag, stringToColor(tag)));
     }
 
-    flip_tasks() {
+    flipTasks() {
 	var fill = this.selectedTasks.size == 0;
 	if(fill)
 	    d3.range(0, this.maxTaskId + 1).forEach(task_id => this.selectedTasks.add(task_id));
@@ -62,42 +62,42 @@ class Data {
 	return fill;
     }
 
-    flip_tags() {
-	var clear = this.is_any_tag_selected();
-	this.tags.forEach(tag => this.flip_tag(tag, !clear));
+    flipTags() {
+	var clear = this.isAnyTagSelected();
+	this.tags.forEach(tag => this.flipTag(tag, !clear));
 	return clear;
     }
 
-    flip_tag(tag, on_off) {
+    flipTag(tag, on_off) {
 	var count = this.tagsCount.get(tag);
 	count.current = on_off ? count.max : 0;
 	this.tagsCount.set(tag, count);
     }
 
-    after_parse() {
+    afterParse() {
 	this.flattenedTasks = flattenTasks(this.tasks);
 
 	this.firstDate = this.flattenedTasks.reduce((accu, {start:start}) => accu.isBefore(moment(start)) ? accu : moment(start), moment()).toDate();
 	this.lastDate = this.flattenedTasks.reduce((accu, {end:end}) => accu.isAfter(moment(end)) ? accu : moment(end), moment()).toDate();
 
-	this.collect_tags();
+	this.collectTags();
 
-	this.flip_tasks();
-	this.flip_tags();
+	this.flipTasks();
+	this.flipTags();
     }
 
-    is_tag_selected(tag) {
+    isTagSelected(tag) {
 	var count = this.tagsCount.get(tag);
 	return count.current == count.max;
     }
 
-    is_any_tag_selected() {
+    isAnyTagSelected() {
 	var any = false;
 	this.tagsCount.forEach((count, tag) => any |= count.current == count.max);
 	return any;
     }
 
-    toggle_tag(tag, on_off) {
+    toggleTag(tag, on_off) {
 	var count = this.tagsCount.get(tag);
 	if(on_off)
 	    count.current = Math.min(count.current + 1, count.max);
@@ -105,19 +105,19 @@ class Data {
 	    count.current = Math.max(count.current - 1, 0);
     }
 
-    get_color_of_(tag) {
+    getColorOfTag(tag) {
 	if(this.tagsColor.has(tag))
 	   return this.tagsColor.get(tag);
 	else
 	    return '#eeeeee';
     }
 
-    get_color_of(tag, force = false) {
-	return this.is_tag_selected(tag) || force ? '#eeeeee' : this.get_color_of_(tag);
+    getColorOf(tag, force = false) {
+	return this.isTagSelected(tag) || force ? '#eeeeee' : this.getColorOfTag(tag);
     }
 
-    get_background_color_of(tag, force = false) {
-	return this.is_tag_selected(tag) || force ? this.get_color_of_(tag) : '#eeeeee';
+    getBackgroundColorOf(tag, force = false) {
+	return this.isTagSelected(tag) || force ? this.getColorOfTag(tag) : '#eeeeee';
     }
 }
 
@@ -189,7 +189,7 @@ function readData(input) {
 
     window.data.maxTaskId = parse.ID;
 
-    window.data.after_parse();
+    window.data.afterParse();
 
     window.startingDatePicker.setDate(window.data.firstDate);
     window.endingDatePicker.setDate(window.data.lastDate);
@@ -407,14 +407,14 @@ function drawTags() {
 	.enter()
 	.append('li')
 	.text(tag => tag)
-	.attr("is-selected", tag => window.data.is_tag_selected(tag))
-	.style("color", tag => window.data.get_color_of(tag))
-	.style("background-color", tag => window.data.get_background_color_of(tag))
+	.attr("is-selected", tag => window.data.isTagSelected(tag))
+	.style("color", tag => window.data.getColorOf(tag))
+	.style("background-color", tag => window.data.getBackgroundColorOf(tag))
 	.on("click", flipTag);
 
     d3.select('#tags')
 	.insert("li", ":first-child")
-	.attr("toggled", !window.data.is_any_tag_selected())
+	.attr("toggled", !window.data.isAnyTagSelected())
 	.text("None")
 	.on("click", flipTags);
 }
@@ -440,8 +440,8 @@ function drawBrowser() {
 	    .append('li')
 	    .text(([_,tag]) => tag)
 	    .attr("is-selected", ([selected,tag]) => selected)
-	    .style("color", ([selected,tag]) => window.data.get_color_of(tag, selected))
-	    .style("background-color", ([selected,tag]) => window.data.get_background_color_of(tag, selected));
+	    .style("color", ([selected,tag]) => window.data.getColorOf(tag, selected))
+	    .style("background-color", ([selected,tag]) => window.data.getBackgroundColorOf(tag, selected));
 
 	if(!li.empty()) {
 	    ul = li.filter(task => 0 < task.subtasks.length)
@@ -574,14 +574,14 @@ function drawCalendar(data, target,
 function selectAllSubTasks(task) {
     window.data.selectedTasks.add(task.id);
     if(task.hasOwnProperty('tags'))
-	task.tags.forEach(tag => window.data.toggle_tag(tag, true));
+	task.tags.forEach(tag => window.data.toggleTag(tag, true));
     task.subtasks.forEach(subtask => selectAllSubTasks(subtask));
 }
 
 function unselectAllSubTasks(task) {
     window.data.selectedTasks.delete(task.id);
     if(task.hasOwnProperty('tags'))
-	task.tags.forEach(tag => window.data.toggle_tag(tag, false));
+	task.tags.forEach(tag => window.data.toggleTag(tag, false));
     task.subtasks.forEach(subtask => unselectAllSubTasks(subtask));
 }
 
@@ -595,8 +595,8 @@ function flipTask(task) {
 }
 
 function flipTasks() {
-    if(window.data.flip_tasks() ^ window.data.is_any_tag_selected())
-	window.data.flip_tags();
+    if(window.data.flipTasks() ^ window.data.isAnyTagSelected())
+	window.data.flipTags();
 
     draw();
 }
@@ -617,12 +617,12 @@ function unselectAllTasksWithTag(task, tag) {
 }
 
 function flipTag(tag) {
-    if(window.data.is_tag_selected(tag)) {
-	window.data.flip_tag(tag, false);
+    if(window.data.isTagSelected(tag)) {
+	window.data.flipTag(tag, false);
 	window.data.tasks.forEach(task => unselectAllTasksWithTag(task, tag));
     }
     else {
-	window.data.flip_tag(tag, true);
+	window.data.flipTag(tag, true);
 	window.data.tasks.forEach(task => selectAllTasksWithTag(task, tag));
     }
 
@@ -636,7 +636,7 @@ function forAllTasksWithATagDo(task, action) {
 }
 
 function flipTags() {
-    if(window.data.flip_tags())
+    if(window.data.flipTags())
 	window.data.tasks.forEach(task => forAllTasksWithATagDo(task, task_id => window.data.selectedTasks.delete(task_id)));
     else
 	window.data.tasks.forEach(task => forAllTasksWithATagDo(task, task_id => window.data.selectedTasks.add(task_id)));

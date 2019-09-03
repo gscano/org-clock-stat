@@ -3,6 +3,7 @@ const defaultStep = 15;
 class Data {
     constructor() {
 	this.maxTaskId = 0;
+	this.headlines = 0;
 
 	this.firstDate = null;
 	this.lastDate = null;
@@ -53,6 +54,22 @@ class Data {
 	this.tags.forEach(tag => this.tagsColor.set(tag, stringToColor(tag)));
     }
 
+    countHeadlines() {
+	function count(accu, task) {
+	    return task.subtasks.reduce(count, 1 + (task.headlines = accu));
+	}
+
+	return this.tasks.reduce(count, 0);
+    }
+
+    setID() {
+	function reduce(id, task) {
+	    return task.subtasks.reduce(reduce, (task.id = id) + 1);
+	}
+
+	return this.tasks.reduce(reduce, 0);
+    }
+
     flipTasks() {
 	var fill = this.selectedTasks.size == 0;
 	if(fill)
@@ -75,6 +92,9 @@ class Data {
     }
 
     afterParse() {
+	this.headlines = this.countHeadlines();
+	this.maxTaskId = this.setID();
+
 	this.flattenedTasks = flattenTasks(this.tasks);
 
 	this.firstDate = this.flattenedTasks.reduce((accu, {start:start}) => accu.isBefore(moment(start)) ? accu : moment(start), moment()).toDate();
@@ -181,13 +201,12 @@ function readFile(event) {
 
 function readData(input) {
 
+    window.startingDatePicker.config({ onSelect: null });
+    window.endingDatePicker.config({ onSelect: null });
+
     window.data = new Data();
 
-    parse.ID = 0;
-
     d3.csvParse(input, parse, 2);
-
-    window.data.maxTaskId = parse.ID;
 
     window.data.afterParse();
 
@@ -243,7 +262,7 @@ function parse(data) {
 	task = tasks.find(element => element.name == parent);
 
 	if(task === undefined) {
-	    tasks.push({"id": parse.ID++, "name": parent, "subtasks": [], "entries": []});
+	    tasks.push({name: parent, depth: i, subtasks: [], entries: []});
 
 	    tasks.sort((a,b) => a.hasOwnProperty('name') && b.hasOwnProperty('name') ? a.name.localeCompare(b.name) : true);
 
@@ -272,15 +291,17 @@ function parse(data) {
     if(!moment(start).isBefore(end))
 	alert("Not adding '" + task.name + "'[" + start + " => " + end + "].");
 
-	task.entries.push([start, end]);
+    task.entries.push([start, end]);
 }
 
 function drawDayAfterPaceChange() {
     var dayPace = parseInt(document.getElementById('day-pace').value);
-    if(dayPace <= 0) {
+
+    if(dayPace <= 0 || 120 < dayPace) {
 	document.getElementById('day-pace').value = defaultStep;
 	dayPace = defaultStep;
     }
+
     var weekendsAsBonus = document.querySelector('#weekends-as-bonus').checked;
 
     window.data.current.day = reduceInterval(window.data.current.tasks, dayPace);
@@ -291,7 +312,7 @@ function drawDayAfterPaceChange() {
 	    window.data.current.totalTime);
 }
 
-function draw(plot) {
+async function draw(plot) {
 
     var target = parseInt(document.getElementById('average-hours').value) * 60
 	+ parseInt(document.getElementById('average-minutes').value);
@@ -316,9 +337,8 @@ function draw(plot) {
 	return result;
     }, window.data.current.tasks);
 
-    // TODO: compute in parallel
     window.data.current.day = reduceInterval(window.data.current.tasks, dayPace);
-    window.data.current.calendar = reduceDuration(window.data.current.tasks);
+    window.data.current.calendar = reduceDuration(window.data.current.tasks)
 
     window.data.current.totalTime = d3.sum(window.data.current.calendar, day => day.duration);
     window.data.current.daysCount = extractDaysInfo(window.data.current.calendar);
@@ -402,7 +422,7 @@ function drawHeadlines() {
 function drawTags() {
     document.getElementById('tags').innerHTML = '';
 
-    d3.select('#tags').selectAll('ul')
+    d3.select('ul#tags').selectAll('ul')
 	.data(Array.from(window.data.tags).sort())
 	.enter()
 	.append('li')
@@ -412,7 +432,7 @@ function drawTags() {
 	.style("background-color", tag => window.data.getBackgroundColorOf(tag))
 	.on("click", flipTag);
 
-    d3.select('#tags')
+    d3.select('ul#tags')
 	.insert("li", ":first-child")
 	.attr("toggled", !window.data.isAnyTagSelected())
 	.text("None")
@@ -450,7 +470,9 @@ function drawBrowser() {
 		.enter();
 
 	    recurse(ul);
+
 	}
+
     }
 
     d3.select("#browser").selectAll('ul')

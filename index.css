@@ -4,6 +4,11 @@
     justify-content: space-between;
 }
 
+#config #day-pace
+{
+    width: 50px;
+}
+
 #config #first-glance
 {
     cursor: pointer;
@@ -69,6 +74,7 @@ ul.tags li
 
 #browser li
 {
+    list-style-type: none;
     margin-bottom: 12px;
 }
 

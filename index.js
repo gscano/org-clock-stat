@@ -141,7 +141,13 @@ class Data {
     }
 }
 
-window.onload = function () {
+window.onload = async function () {
+
+    var help = load('./help.html', "help-content");
+    var license = load('./license.html', "license-content");
+
+    document.getElementById('help').addEventListener('click', displayHelp);
+    document.getElementById('license').addEventListener('click', displayLicense);
 
     d3.select('#average-hours').selectAll('option').data(d3.range(0,24)).enter()
 	.append('option').attr("value", hour => hour).text(hour => displayTwoDigits(hour));
@@ -190,12 +196,41 @@ window.onload = function () {
 	readData(data.join('\n'));
     }
     /* DEMO AND TESTS ONLY */
+
+    await help;
+    await license;
+}
+
+function displayHelp() {
+    document.getElementById("help-container").setAttribute("visibility", "true");
+    document.getElementById("content").setAttribute("visibility", "hidden");
+    document.getElementById("help-close").addEventListener("click", hideHelp);
+}
+
+function hideHelp() {
+    document.getElementById("help-container").setAttribute("visibility", "false");
+    document.getElementById("content").removeAttribute("visibility");
+}
+
+function displayLicense() {
+    document.getElementById("license-container").setAttribute("visibility", "true");
+    document.getElementsByTagName("body")[0].setAttribute("visibility", "soft");
+    window.onclick = hideLicense;
+}
+
+function hideLicense(event) {
+    if(event.target == document.getElementById("license-container")) {
+	document.getElementById("license-container").setAttribute("visibility", "false");
+	document.getElementsByTagName("body")[0].setAttribute("visibility", "hard");
+	window.onclick = null;
+    }
 }
 
 function readFile(event) {
     var reader = new FileReader();
 
     reader.onloadend = e => readData(e.target.result);
+    console.log(event.target.files[0])
     reader.readAsText(event.target.files[0]);
 }
 

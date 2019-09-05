@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
 <html>
   <head>
@@ -8,16 +9,16 @@
     <link rel="stylesheet" href="index.css"/>
 
     <!---->
-	<script src="./d3.js"></script>
-	<script src="./moment.js"></script>
-	<script src="./pikaday.js"></script>
-	<link rel="stylesheet" href="./pikaday.css">
-    <!--
-    <script src="https://d3js.org/d3.v5.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment-with-locales.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/pikaday/pikaday.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pikaday/css/pikaday.css">
-    -->
+    <script src="./d3.js"></script>
+    <script src="./moment.js"></script>
+    <script src="./pikaday.js"></script>
+    <link rel="stylesheet" href="./pikaday.css">
+
+    <!-- <script src="https://d3js.org/d3.v5.js"></script> -->
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment-with-locales.js"></script> -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/pikaday/pikaday.js"></script> -->
+    <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pikaday/css/pikaday.css"> -->
+    <!---->
 
     <script src="./index.js"></script>
     <script src="./lib.js"></script>
@@ -27,75 +28,89 @@
   </head>
 
   <body>
-    <div id="config">
 
-      <span>
-	<span id="help">?</span>
-	<span id="copyright">©</span>
-      </span>
-
-      <span>
-	Average
-	<select id="average-hours"></select>
-	:
-	<select id="average-minutes"></select>
-	per day.
-      </span>
-
-      <span>
-	<label for="pace">Pace day by</label>
-	<input type="number" id="day-pace" min="1" max="120" maxlength="4"/>
-	minutes.
-      </span>
-
-      <span>
-	Display
-	<input type="checkbox" id="display-weekends"/>
-	<label for="display-weekends">weekends</label>
-	, or count as
-	<input type="checkbox" id="weekends-as-bonus"/>
-	<label for="weekends-as-bonus">bonus.</label>
-      </span>
-
-      <span>
-	<span id="first-glance">First glance</span>
-	for
-	<input type="checkbox" id="first-glance-weekdays"/>
-	<label for="first-glance-weekdays">weekdays</label>
-	,
-	<input type="checkbox" id="first-glance-months"/>
-	<label for="first-glance-months">months</label>
-	and
-	<input type="checkbox" id="first-glance-years"/>
-	<label for="first-glance-years">years.</label>
-      </span>
-
+    <div id="help-container" class="modal-container" visibility="false">
+      <div id="help-content">
+      </div>
     </div>
 
-    <hr/>
-
-    <div id="select">
-      <label for="file-input">With file</label>
-      <input type="file" id="file-input"/>
-
-      <label for="starting-date">from</label>
-      <input type="text" id="starting-date" size="10"/>
-
-      <label for="ending-date">to</label>
-      <input type="text" id="ending-date" size="10"/>
-      .
+    <div id="license-container" class="modal-container" visibility="false">
+      <div id="license-content">
+      </div>
     </div>
 
-    <hr/>
+    <div id="content">
+      <div id="config">
 
-    <div id="day"></div>
+	<span>
+	  <span id="help">?</span>
+	  <span id="license">©</span>
+	</span>
 
-    <div id="headlines">
-      <ul id="tags"></ul>
-      <ul id="browser"></ul>
+	<span>
+	  Average
+	  <select id="average-hours"></select>
+	  :
+	  <select id="average-minutes"></select>
+	  per day.
+	</span>
+
+	<span>
+	  <label for="pace">Pace day by</label>
+	  <input type="number" id="day-pace" min="1" max="120" maxlength="3"/>
+	  minutes.
+	</span>
+
+	<span>
+	  Display
+	  <input type="checkbox" id="display-weekends"/>
+	  <label for="display-weekends">weekends</label>
+	  , or count as
+	  <input type="checkbox" id="weekends-as-bonus"/>
+	  <label for="weekends-as-bonus">bonus.</label>
+	</span>
+
+	<span>
+	  <span id="first-glance">First glance</span>
+	  for
+	  <input type="checkbox" id="first-glance-weekdays"/>
+	  <label for="first-glance-weekdays">weekdays</label>
+	  ,
+	  <input type="checkbox" id="first-glance-months"/>
+	  <label for="first-glance-months">months</label>
+	  and
+	  <input type="checkbox" id="first-glance-years"/>
+	  <label for="first-glance-years">years.</label>
+	</span>
+
+      </div>
+
+      <hr/>
+
+      <div id="select">
+	<label for="file-input">With file</label>
+	<input type="file" id="file-input"/>
+
+	<label for="starting-date">from</label>
+	<input type="text" id="starting-date" size="10"/>
+
+	<label for="ending-date">to</label>
+	<input type="text" id="ending-date" size="10"/>
+	.
+      </div>
+
+      <hr/>
+
+      <div id="day"></div>
+
+      <div id="headlines">
+	<ul id="tags"></ul>
+	<ul id="browser"></ul>
+      </div>
+
+      <div id="calendar"></div>
+
     </div>
-
-    <div id="calendar"></div>
 
   </body>
 </html>

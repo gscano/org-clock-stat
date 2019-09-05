@@ -1,0 +1,341 @@
+<div>
+  <style type="text/css" scoped>
+    .help-block
+    {
+    border: 1px solid;
+    background-color: rgba(0,0,0,0.1);
+    }
+
+    #help-config
+    {
+    display: flex;
+    justify-content: space-between;
+    text-align: center;
+    }
+
+    #help-config span
+    {
+    display: inline-block;
+    padding: 15px;
+    }
+
+    #help-config p
+    {
+    display: block;
+    text-align: left;
+    padding: 15px;
+    }
+
+    #help-day
+    {
+    text-align: center;
+    width: 100%;
+    }
+
+    #help-headlines
+    {
+    text-align: center;
+    width: 30%;
+    margin:10px;
+    float: left;
+    }
+
+    #help-calendar
+    {
+    text-align: center;
+    width: 60%;
+    margin:10px;
+    float: right;
+    }
+  </style>
+
+  <div id="help-config">
+
+    <div id="help-close">
+      &times;
+    </div>
+
+    <div class="help-block">
+      <span>
+	Average
+	<select disabled="true"><option>07</option></select>
+	:
+	<select disabled="true"><option>00</option></select>
+	per day.
+      </span>
+      <hr/>
+      <p style="width: 250px">
+	Used in the <b>calendar</b> view to center the color of a day around this targeted average value.
+      </p>
+    </div>
+
+    <div class="help-block">
+      <span>
+	<label>Pace day by</label>
+	<input type="number" disabled="true" value="60" min="1" max="120" maxlength="3"/>
+	minutes.
+      </span>
+      <hr/>
+      <p style="width: 300px">
+	Used in the <b>day</b> view as the time span of each box.
+      </p>
+    </div>
+
+    <div class="help-block">
+      <span>
+	Display
+	<input type="checkbox" disabled="true" autocomplete="off" checked="true"/>
+	<label>weekends</label>
+	, or count as
+	<input type="checkbox" disabled="true" autocomplete="off" checked="true"/>
+	<label>bonus.</label>
+      </span>
+      <hr/>
+      <p style="width: 350px">
+	Display weekend days in the <b>calendar</b> view
+      </p>
+    </div>
+
+    <div class="help-block">
+      <span>
+	<span>First glance</span>
+	for
+	<input type="checkbox" disabled="true" autocomplete="off" checked="true"/>
+	<label>weekdays</label>
+	,
+	<input type="checkbox" disabled="true" autocomplete="off" checked="true"/>
+	<label>months</label>
+	and
+	<input type="checkbox" disabled="true" autocomplete="off" checked="true"/>
+	<label>years.</label>
+      </span>
+      <hr/>
+      <p style="width: 500px">
+	Independently display, for <i>weekdays<i>, <i>months</i> and <i>years</i> an ellipse in the <b>calendar</b> view such that:
+	    <ul style="text-align: left; width: 500px">
+	      <li>its color is centered around the <b>average</b> targeted day accross all the corresponding period of time;</li>
+	      <li>its X radius is a factor of the average per day divided by the standard deviation, yielding a circle for a standard deviation of 0.</li>
+	    </ul>
+      </p>
+    </div>
+
+  </div>
+
+  <hr/>
+
+  <div id="help-day" class="help-block" >
+    <h2>Day</h2>
+
+    <div id="select">
+      <label>With file</label>
+      <input type="file" disabled="true" style="color: transparent;"/>
+      <span style="position: relative;z-index: 1;left: -170px;">stats.csv</span>
+      <label>from</label>
+      <input type="text" disabled="true" value="2019-04-04" size="10"/>
+
+      <label>to</label>
+      <input type="text" disabled="true" value="2019-09-04" size="10"/>
+	.
+    </div>
+
+    <svg width="508" height="56" transform="translate(0,10)">
+      <g>
+	<text transform="translate(10,12.5)">1272 x<title>Minutes counted twice a day: 42  12.67%</title></text>
+      </g>
+      <g>
+	<rect width="16" height="16" transform="translate(70, 0)" fill="rgb(238, 247, 238)"><title>00:00-01:00 00:04 7%</title></rect>
+	<rect width="16" height="16" transform="translate(87, 0)" fill="rgb(255, 255, 255)"><title>01:00-02:00 00:00 0%</title></rect>
+	<rect width="16" height="16" transform="translate(104, 0)" fill="rgb(255, 255, 255)"><title>02:00-03:00 00:00 0%</title></rect>
+	<rect width="16" height="16" transform="translate(121, 0)" fill="rgb(255, 255, 255)"><title>03:00-04:00 00:00 0%</title></rect>
+	<rect width="16" height="16" transform="translate(138, 0)" fill="rgb(255, 255, 255)"><title>04:00-05:00 00:00 0%</title></rect>
+	<rect width="16" height="16" transform="translate(155, 0)" fill="rgb(255, 255, 255)"><title>05:00-06:00 00:00 0%</title></rect>
+	<rect width="16" height="16" transform="translate(172, 0)" fill="rgb(255, 255, 255)"><title>06:00-07:00 00:00 0%</title></rect>
+	<rect width="16" height="16" transform="translate(189, 0)" fill="rgb(255, 255, 255)"><title>07:00-08:00 00:00 0%</title></rect>
+	<rect width="16" height="16" transform="translate(206, 0)" fill="rgb(157, 206, 157)"><title>08:00-09:00 00:23 39%</title></rect>
+	<rect width="16" height="16" transform="translate(223, 0)" fill="rgb(72, 164, 72)"><title>09:00-10:00 00:43 72%</title></rect>
+	<rect width="16" height="16" transform="translate(240, 0)" fill="rgb(72, 164, 72)"><title>10:00-11:00 00:43 72%</title></rect>
+	<rect width="16" height="16" transform="translate(257, 0)" fill="rgb(72, 164, 72)"><title>11:00-12:00 00:43 72%</title></rect>
+	<rect width="16" height="16" transform="translate(274, 0)" fill="rgb(72, 164, 72)"><title>12:00-13:00 00:43 73%</title></rect>
+	<rect width="16" height="16" transform="translate(291, 0)" fill="rgb(153, 204, 153)"><title>13:00-14:00 00:24 41%</title></rect>
+	<rect width="16" height="16" transform="translate(308, 0)" fill="rgb(145, 200, 145)"><title>14:00-15:00 00:26 44%</title></rect>
+	<rect width="16" height="16" transform="translate(325, 0)" fill="rgb(102, 179, 102)"><title>15:00-16:00 00:36 60%</title></rect>
+	<rect width="16" height="16" transform="translate(342, 0)" fill="rgb(98, 177, 98)"><title>16:00-17:00 00:37 63%</title></rect>
+	<rect width="16" height="16" transform="translate(359, 0)" fill="rgb(170, 213, 170)"><title>17:00-18:00 00:20 33%</title></rect>
+	<rect width="16" height="16" transform="translate(376, 0)" fill="rgb(234, 244, 234)"><title>18:00-19:00 00:05 9%</title></rect>
+	<rect width="16" height="16" transform="translate(393, 0)" fill="rgb(238, 247, 238)"><title>19:00-20:00 00:04 7%</title></rect>
+	<rect width="16" height="16" transform="translate(410, 0)" fill="rgb(234, 244, 234)"><title>20:00-21:00 00:05 9%</title></rect>
+	<rect width="16" height="16" transform="translate(427, 0)" fill="rgb(234, 244, 234)"><title>21:00-22:00 00:05 9%</title></rect>
+	<rect width="16" height="16" transform="translate(444, 0)" fill="rgb(234, 244, 234)"><title>22:00-23:00 00:05 9%</title></rect>
+	<rect width="16" height="16" transform="translate(461, 0)" fill="rgb(234, 244, 234)"><title>23:00-00:00 00:05 Infinity%</title></rect>
+      </g>
+      <g>
+	<line transform="translate(70, 30)" stroke="black" x1="0" x2="0" y1="0" y2="-10"></line>
+	<line transform="translate(138, 30)" stroke="black" x1="0" x2="0" y1="0" y2="-10"></line>
+	<line transform="translate(206, 30)" stroke="black" x1="0" x2="0" y1="0" y2="-10"></line>
+	<line transform="translate(274, 30)" stroke="black" x1="0" x2="0" y1="0" y2="-10"></line>
+	<line transform="translate(342, 30)" stroke="black" x1="0" x2="0" y1="0" y2="-10"></line>
+	<line transform="translate(410, 30)" stroke="black" x1="0" x2="0" y1="0" y2="-10"></line>
+	<line transform="translate(478, 30)" stroke="black" x1="0" x2="0" y1="0" y2="-10"></line></g>
+      <g class="hours">
+	<text transform="translate(47, 40)">00:00</text>
+	<text transform="translate(115, 40)">04:00</text>
+	<text transform="translate(183, 40)">08:00</text>
+	<text transform="translate(251, 40)">12:00</text>
+	<text transform="translate(319, 40)">16:00</text>
+	<text transform="translate(387, 40)">20:00</text>
+	<text transform="translate(455, 40)">00:00</text>
+      </g>
+    </svg>
+
+    <hr/>
+    <p>
+      The CSV input file contains, in any order, the following <ins>mandatory</ins> or <del>optional</del> fields: <emp><ins>task</ins>,<ins>parents</ins>,<ins>category</ins>,<ins>start</ins>,<ins>end</ins>,<del>effort</del>,<del>ishabit</del>,<del>tags</del></emp>.
+      <br/>
+      All displayed data is wihtin the <b>starting date</b> and the <b>ending date</b>.
+    </p>
+  </div>
+
+  <hr/>
+
+  <div id="help-headlines" class="help-block" >
+    <h2>Headlines</h2>
+  </div>
+
+  <div id="help-calendar" class="help-block" >
+    <h2>Calendar</h2>
+
+    <svg width="1124" height="200">
+      <g transform="translate(50,40)">
+	<g class="calendar-year"><text>2019</text>
+	  <ellipse cx="20" cy="-6" ry="8" rx="-0.8956734983974911" fill="rgb(255, 255, 255)"><title>0-767293:0-49</title>
+	  </ellipse>
+	</g>
+	<g class="calendar-weekday" transform="translate(-30,24)">
+	  <g transform="translate(3, 50.400000000000006)"><text>Thursday</text></g>
+	  <g transform="translate(3, 67.2)"><text>Friday</text></g>
+	  <g transform="translate(3, 33.6)"><text>Wednesday</text></g>
+	  <g transform="translate(3, 0)"><text>Monday</text></g>
+	  <g transform="translate(3, 16.8)"><text>Tuesday</text></g>
+	</g>
+	<g class="calendar-month" transform="translate(70,0)">
+	  <g transform="translate(583,0)"><text>Aug</text></g>
+	  <g transform="translate(507,0)"><text>Jul</text></g>
+	  <g transform="translate(414,0)"><text>Jun</text></g>
+	  <g transform="translate(338,0)"><text>May</text></g>
+	  <g transform="translate(262,0)"><text>Apr</text></g></g>
+	<g class="calendar-day" transform="translate(70,10)">
+	  <rect width="16" height="16" transform="translate(262,51)" fill="rgb(0, 0, 0)"><title>2019-04-04 185644:29</title></rect>
+	  <rect width="16" height="16" transform="translate(262,68)" fill="rgb(255, 255, 255)"><title>2019-04-05 0-110676614:0-33</title></rect>
+	  <rect width="16" height="16" transform="translate(279,34)" fill="rgb(0, 107, 0)"><title>2019-04-10 08:10</title></rect>
+	  <rect width="16" height="16" transform="translate(279,51)" fill="rgb(39, 147, 39)"><title>2019-04-11 05:56</title></rect>
+	  <rect width="16" height="16" transform="translate(279,68)" fill="rgb(0, 113, 0)"><title>2019-04-12 07:48</title></rect>
+	  <rect width="16" height="16" transform="translate(296,0)" fill="rgb(0, 84, 0)"><title>2019-04-15 09:24</title></rect>
+	  <rect width="16" height="16" transform="translate(296,17)" fill="rgb(39, 147, 39)"><title>2019-04-16 05:56</title></rect>
+	  <rect width="16" height="16" transform="translate(296,68)" fill="rgb(53, 155, 53)"><title>2019-04-19 05:32</title></rect>
+	  <rect width="16" height="16" transform="translate(313,0)" fill="rgb(33, 145, 33)"><title>2019-04-22 06:05</title></rect>
+	  <rect width="16" height="16" transform="translate(313,17)" fill="rgb(41, 149, 41)"><title>2019-04-23 05:52</title></rect>
+	  <rect width="16" height="16" transform="translate(313,34)" fill="rgb(0, 118, 0)"><title>2019-04-24 07:32</title></rect>
+	  <rect width="16" height="16" transform="translate(313,51)" fill="rgb(0, 91, 0)"><title>2019-04-25 09:04</title></rect>
+	  <rect width="16" height="16" transform="translate(313,68)" fill="rgb(0, 112, 0)"><title>2019-04-26 07:54</title></rect>
+	  <rect width="16" height="16" transform="translate(330,17)" fill="rgb(49, 152, 49)"><title>2019-04-30 05:39</title></rect>
+	  <rect width="16" height="16" transform="translate(338,51)" fill="rgb(0, 78, 0)"><title>2019-05-02 09:47</title></rect>
+	  <rect width="16" height="16" transform="translate(338,68)" fill="rgb(0, 117, 0)"><title>2019-05-03 07:37</title></rect>
+	  <rect width="16" height="16" transform="translate(355,17)" fill="rgb(15, 136, 15)"><title>2019-05-07 06:35</title></rect>
+	  <rect width="16" height="16" transform="translate(355,68)" fill="rgb(0, 108, 0)"><title>2019-05-10 08:06</title></rect>
+	  <rect width="16" height="16" transform="translate(372,0)" fill="rgb(78, 167, 78)"><title>2019-05-13 04:52</title></rect>
+	  <rect width="16" height="16" transform="translate(372,17)" fill="rgb(2, 129, 2)"><title>2019-05-14 06:57</title></rect>
+	  <rect width="16" height="16" transform="translate(372,68)" fill="rgb(38, 147, 38)"><title>2019-05-17 05:58</title></rect>
+	  <rect width="16" height="16" transform="translate(389,0)" fill="rgb(0, 105, 0)"><title>2019-05-20 08:17</title></rect>
+	  <rect width="16" height="16" transform="translate(389,17)" fill="rgb(0, 105, 0)"><title>2019-05-21 08:15</title></rect>
+	  <rect width="16" height="16" transform="translate(389,34)" fill="rgb(0, 112, 0)"><title>2019-05-22 07:53</title></rect>
+	  <rect width="16" height="16" transform="translate(389,51)" fill="rgb(0, 122, 0)"><title>2019-05-23 07:20</title></rect>
+	  <rect width="16" height="16" transform="translate(389,68)" fill="rgb(0, 88, 0)"><title>2019-05-24 09:12</title></rect>
+	  <rect width="16" height="16" transform="translate(406,0)" fill="rgb(0, 104, 0)"><title>2019-05-27 08:18</title></rect>
+	  <rect width="16" height="16" transform="translate(406,17)" fill="rgb(29, 143, 29)"><title>2019-05-28 06:12</title></rect>
+	  <rect width="16" height="16" transform="translate(406,68)" fill="rgb(0, 116, 0)"><title>2019-05-31 07:39</title></rect>
+	  <rect width="16" height="16" transform="translate(431,34)" fill="rgb(15, 136, 15)"><title>2019-06-05 06:35</title></rect>
+	  <rect width="16" height="16" transform="translate(431,51)" fill="rgb(11, 133, 11)"><title>2019-06-06 06:42</title></rect>
+	  <rect width="16" height="16" transform="translate(431,68)" fill="rgb(0, 94, 0)"><title>2019-06-07 08:52</title></rect>
+	  <rect width="16" height="16" transform="translate(448,0)" fill="rgb(0, 83, 0)"><title>2019-06-10 09:30</title></rect>
+	  <rect width="16" height="16" transform="translate(448,17)" fill="rgb(100, 178, 100)"><title>2019-06-11 04:16</title></rect>
+	  <rect width="16" height="16" transform="translate(448,68)" fill="rgb(62, 159, 62)"><title>2019-06-14 05:18</title></rect>
+	  <rect width="16" height="16" transform="translate(465,0)" fill="rgb(0, 116, 0)"><title>2019-06-17 07:39</title></rect>
+	  <rect width="16" height="16" transform="translate(465,51)" fill="rgb(0, 102, 0)"><title>2019-06-20 08:25</title></rect>
+	  <rect width="16" height="16" transform="translate(465,68)" fill="rgb(0, 92, 0)"><title>2019-06-21 09:00</title></rect>
+	  <rect width="16" height="16" transform="translate(482,34)" fill="rgb(5, 131, 5)"><title>2019-06-26 06:51</title></rect>
+	  <rect width="16" height="16" transform="translate(482,68)" fill="rgb(0, 102, 0)"><title>2019-06-28 08:27</title></rect>
+	  <rect width="16" height="16" transform="translate(507,0)" fill="rgb(68, 162, 68)"><title>2019-07-01 05:08</title></rect>
+	  <rect width="16" height="16" transform="translate(507,17)" fill="rgb(0, 103, 0)"><title>2019-07-02 08:22</title></rect>
+	  <rect width="16" height="16" transform="translate(507,34)" fill="rgb(91, 173, 91)"><title>2019-07-03 04:30</title></rect>
+	  <rect width="16" height="16" transform="translate(524,17)" fill="rgb(22, 139, 22)"><title>2019-07-09 06:23</title></rect>
+	  <rect width="16" height="16" transform="translate(541,17)" fill="rgb(0, 123, 0)"><title>2019-07-16 07:18</title></rect>
+	  <rect width="16" height="16" transform="translate(541,51)" fill="rgb(47, 151, 47)"><title>2019-07-18 05:43</title></rect>
+	  <rect width="16" height="16" transform="translate(541,68)" fill="rgb(0, 79, 0)"><title>2019-07-19 09:43</title></rect>
+	  <rect width="16" height="16" transform="translate(558,0)" fill="rgb(0, 123, 0)"><title>2019-07-22 07:17</title></rect>
+	  <rect width="16" height="16" transform="translate(558,17)" fill="rgb(1, 129, 1)"><title>2019-07-23 06:58</title></rect>
+	  <rect width="16" height="16" transform="translate(558,34)" fill="rgb(0, 71, 0)"><title>2019-07-24 10:09</title></rect>
+	  <rect width="16" height="16" transform="translate(600,0)" fill="rgb(0, 123, 0)"><title>2019-08-05 07:17</title></rect>
+	  <rect width="16" height="16" transform="translate(600,17)" fill="rgb(26, 141, 26)"><title>2019-08-06 06:17</title></rect>
+	  <rect width="16" height="16" transform="translate(600,34)" fill="rgb(0, 58, 0)"><title>2019-08-07 10:52</title></rect>
+	  <rect width="16" height="16" transform="translate(617,0)" fill="rgb(0, 91, 0)"><title>2019-08-12 09:02</title></rect>
+	  <rect width="16" height="16" transform="translate(617,17)" fill="rgb(4, 130, 4)"><title>2019-08-13 06:54</title></rect>
+	  <rect width="16" height="16" transform="translate(634,0)" fill="rgb(29, 142, 29)"><title>2019-08-19 06:13</title></rect>
+	  <rect width="16" height="16" transform="translate(634,17)" fill="rgb(34, 145, 34)"><title>2019-08-20 06:04</title></rect>
+	  <rect width="16" height="16" transform="translate(634,34)" fill="rgb(0, 91, 0)"><title>2019-08-21 09:03</title></rect>
+	  <rect width="16" height="16" transform="translate(634,51)" fill="rgb(0, 117, 0)"><title>2019-08-22 07:38</title></rect>
+	  <rect width="16" height="16" transform="translate(651,17)" fill="rgb(154, 205, 154)"><title>2019-08-27 02:46</title></rect>
+	  <rect width="16" height="16" transform="translate(651,34)" fill="rgb(141, 198, 141)"><title>2019-08-28 03:08</title></rect>
+	  <rect width="16" height="16" transform="translate(651,51)" fill="rgb(9, 132, 9)"><title>2019-08-29 06:46</title></rect>
+	  <rect width="16" height="16" transform="translate(651,68)" fill="rgb(0, 99, 0)"><title>2019-08-30 08:37</title></rect>
+	  <rect width="16" height="16" transform="translate(279,0)" fill="rgb(0, 110, 0)"><title>2019-04-08 07:59</title></rect>
+	  <rect width="16" height="16" transform="translate(279,17)" fill="rgb(3, 130, 3)"><title>2019-04-09 06:55</title></rect>
+	  <rect width="16" height="16" transform="translate(296,34)" fill="rgb(0, 110, 0)"><title>2019-04-17 07:59</title></rect>
+	  <rect width="16" height="16" transform="translate(296,51)" fill="rgb(58, 157, 58)"><title>2019-04-18 05:24</title></rect>
+	  <rect width="16" height="16" transform="translate(355,0)" fill="rgb(0, 125, 0)"><title>2019-05-06 07:10</title></rect>
+	  <rect width="16" height="16" transform="translate(355,34)" fill="rgb(43, 149, 43)"><title>2019-05-08 05:50</title></rect>
+	  <rect width="16" height="16" transform="translate(372,34)" fill="rgb(0, 101, 0)"><title>2019-05-15 08:30</title></rect>
+	  <rect width="16" height="16" transform="translate(406,34)" fill="rgb(0, 109, 0)"><title>2019-05-29 08:04</title></rect>
+	  <rect width="16" height="16" transform="translate(431,17)" fill="rgb(0, 82, 0)"><title>2019-06-04 09:31</title></rect>
+	  <rect width="16" height="16" transform="translate(448,51)" fill="rgb(0, 98, 0)"><title>2019-06-13 08:38</title></rect>
+	  <rect width="16" height="16" transform="translate(482,0)" fill="rgb(49, 152, 49)"><title>2019-06-24 05:40</title></rect>
+	  <rect width="16" height="16" transform="translate(482,51)" fill="rgb(0, 125, 0)"><title>2019-06-27 07:10</title></rect>
+	  <rect width="16" height="16" transform="translate(507,51)" fill="rgb(10, 133, 10)"><title>2019-07-04 06:44</title></rect>
+	  <rect width="16" height="16" transform="translate(507,68)" fill="rgb(15, 135, 15)"><title>2019-07-05 06:36</title></rect>
+	  <rect width="16" height="16" transform="translate(524,0)" fill="rgb(0, 123, 0)"><title>2019-07-08 07:15</title></rect>
+	  <rect width="16" height="16" transform="translate(524,34)" fill="rgb(0, 116, 0)"><title>2019-07-10 07:41</title></rect>
+	  <rect width="16" height="16" transform="translate(524,51)" fill="rgb(0, 104, 0)"><title>2019-07-11 08:20</title></rect>
+	  <rect width="16" height="16" transform="translate(524,68)" fill="rgb(78, 167, 78)"><title>2019-07-12 04:52</title></rect>
+	  <rect width="16" height="16" transform="translate(541,34)" fill="rgb(10, 133, 10)"><title>2019-07-17 06:44</title></rect>
+	  <rect width="16" height="16" transform="translate(558,51)" fill="rgb(2, 129, 2)"><title>2019-07-25 06:57</title></rect>
+	  <rect width="16" height="16" transform="translate(558,68)" fill="rgb(0, 118, 0)"><title>2019-07-26 07:32</title></rect>
+	  <rect width="16" height="16" transform="translate(575,17)" fill="rgb(0, 126, 0)"><title>2019-07-30 07:08</title></rect>
+	  <rect width="16" height="16" transform="translate(583,68)" fill="rgb(0, 115, 0)"><title>2019-08-02 07:44</title></rect>
+	  <rect width="16" height="16" transform="translate(600,68)" fill="rgb(0, 118, 0)"><title>2019-08-09 07:32</title></rect>
+	  <rect width="16" height="16" transform="translate(617,34)" fill="rgb(0, 124, 0)"><title>2019-08-14 07:14</title></rect>
+	  <rect width="16" height="16" transform="translate(617,51)" fill="rgb(0, 67, 0)"><title>2019-08-15 10:21</title></rect>
+	  <rect width="16" height="16" transform="translate(634,68)" fill="rgb(30, 143, 30)"><title>2019-08-23 06:10</title></rect>
+	  <rect width="16" height="16" transform="translate(338,34)" fill="rgb(18, 137, 18)"><title>2019-05-01 06:31</title></rect>
+	  <rect width="16" height="16" transform="translate(355,51)" fill="rgb(68, 162, 68)"><title>2019-05-09 05:08</title></rect>
+	  <rect width="16" height="16" transform="translate(372,51)" fill="rgb(30, 143, 30)"><title>2019-05-16 06:10</title></rect>
+	  <rect width="16" height="16" transform="translate(406,51)" fill="rgb(5, 131, 5)"><title>2019-05-30 06:51</title></rect>
+	  <rect width="16" height="16" transform="translate(431,0)" fill="rgb(55, 156, 55)"><title>2019-06-03 05:29</title></rect>
+	  <rect width="16" height="16" transform="translate(448,34)" fill="rgb(52, 154, 52)"><title>2019-06-12 05:34</title></rect>
+	  <rect width="16" height="16" transform="translate(482,17)" fill="rgb(2, 129, 2)"><title>2019-06-25 06:56</title></rect>
+	  <rect width="16" height="16" transform="translate(541,0)" fill="rgb(76, 166, 76)"><title>2019-07-15 04:55</title></rect>
+	  <rect width="16" height="16" transform="translate(575,34)" fill="rgb(0, 82, 0)"><title>2019-07-31 09:31</title></rect>
+	  <rect width="16" height="16" transform="translate(583,51)" fill="rgb(14, 135, 14)"><title>2019-08-01 06:37</title></rect>
+	  <rect width="16" height="16" transform="translate(330,0)" fill="rgb(55, 156, 55)"><title>2019-04-29 05:29</title></rect>
+	  <rect width="16" height="16" transform="translate(465,17)" fill="rgb(15, 135, 15)"><title>2019-06-18 06:36</title></rect>
+	  <rect width="16" height="16" transform="translate(465,34)" fill="rgb(180, 218, 180)"><title>2019-06-19 02:04</title></rect>
+	  <rect width="16" height="16" transform="translate(575,0)" fill="rgb(13, 134, 13)"><title>2019-07-29 06:39</title></rect>
+	  <rect width="16" height="16" transform="translate(600,51)" fill="rgb(0, 107, 0)"><title>2019-08-08 08:08</title></rect>
+	  <rect width="16" height="16" transform="translate(651,0)" fill="rgb(58, 157, 58)"><title>2019-08-26 05:25</title></rect>
+	  <rect width="16" height="16" transform="translate(617,68)" fill="rgb(0, 126, 0)"><title>2019-08-16 07:08</title></rect>
+	</g>
+      </g>
+    </svg>
+
+    Display every day between the <b>starting date</b> to the <b>ending date</b>
+  </div>
+
+</div>

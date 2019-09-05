@@ -225,17 +225,20 @@ function stringToColor(str) {
     return `rgb(${R}, ${G}, ${B})`;
 }
 
-function load(path) {
-    var xhr = new XMLHttpRequest();
+async function load(path, id) {
 
-    xhr.open('GET', path);
+    if(!window.location.href.startsWith("file")) {
+	var xhr = new XMLHttpRequest();
 
-    xhr.onload = function() {
-	if (xhr.status === 200)
-	    document.getElementById(id).innerHTML = xhr.responseText;
-	else
-	    document.getElementById(id).innerHTML = "Cannot load '" + path + "' (" + xhr.status + ").";
-    };
+	xhr.open('GET', path);
 
-    xhr.send();
+	xhr.onload = function() {
+	    if (xhr.status === 200)
+		document.getElementById(id).innerHTML = xhr.responseText;
+	    else
+		document.getElementById(id).innerHTML = "Cannot load '" + path + "' (" + xhr.status + ").";
+	};
+
+	xhr.send();
+    }
 }

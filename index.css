@@ -1,3 +1,64 @@
+.modal-container[visibility=false]
+{
+    display: none;
+}
+
+.modal-container[visibility=true]
+{
+    display:block;
+}
+
+#help-container
+{
+    z-index: 1;
+
+    left: 0;
+    top: 0;
+}
+
+#help-content
+{
+
+}
+
+#license-container
+{
+    z-index: 1;
+
+    position: fixed;
+    left: 0;
+    top: 0;
+
+    padding-top: 120px;
+    width: 100%;
+    height: 100%;
+
+    background-color: rgba(0,0,0,0.5);
+}
+
+#license-content
+{
+    text-align: center;
+    overflow: auto;
+
+    background-color: white;
+
+    margin: auto;
+
+    height: 80%;
+    width: 60%;
+}
+
+body[visibility=soft]
+{
+    overflow: hidden;
+}
+
+#content[visibility=hidden]
+{
+    visibility: hidden;
+}
+
 #config
 {
     display: flex;

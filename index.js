@@ -1,3 +1,95 @@
+window.onload = async function () {
+
+    load('./help.html')
+	.then(content => {
+	    document.getElementById('help-content').innerHTML = content;
+	    document.getElementById('help').addEventListener('click', displayHelp);
+	    document.getElementById('help').removeAttribute("href");
+	})
+	.catch(reason => console.log(reason));
+
+    load('./license.html')
+	.then(content => {
+	    document.getElementById('license-content').innerHTML = content;
+	    document.getElementById('license').addEventListener('click', displayLicense);
+	    document.getElementById('license').removeAttribute("href");
+	})
+	.catch(reason => console.log(reason));
+
+    d3.select('#average-hours').selectAll('option').data(d3.range(0,24)).enter()
+	.append('option').attr("value", hour => hour).text(hour => displayTwoDigits(hour));
+    document.getElementById('average-hours').value = "7";
+    document.getElementById('average-hours').addEventListener('change', draw);
+    d3.select('#average-minutes').selectAll('option').data(d3.range(0,60)).enter()
+	.append('option').attr("value", minutes => minutes).text(minutes => displayTwoDigits(minutes));
+    document.getElementById('average-minutes').value = "0";
+    document.getElementById('average-minutes').addEventListener('change', draw);
+
+    document.getElementById('day-pace').value = defaultStep;
+    document.getElementById('day-pace').addEventListener('change', drawDayAfterPaceChange);
+
+    document.getElementById('display-weekends').addEventListener('change', draw);
+    document.getElementById('weekends-as-bonus').addEventListener('change', draw);
+
+    document.getElementById('first-glance').addEventListener('click', toggleFirstGlance);
+    document.getElementById('first-glance-weekdays').addEventListener('change', draw);
+    document.getElementById('first-glance-months').addEventListener('change', draw);
+    document.getElementById('first-glance-years').addEventListener('change', draw);
+
+    document.getElementById('file-input').addEventListener('change', readFile, false);
+
+    window.startingDatePicker = new Pikaday({ field: document.getElementById('starting-date') });
+    window.endingDatePicker = new Pikaday({ field: document.getElementById('ending-date') });
+
+    /* DEMO AND TESTS ONLY */
+    if(true) {
+	var projects = randomProjects({headlines:20,
+				       maxDepth: 4, maxChildren: 4,
+				       tagsProbability: 0.35, maxTags: 4,
+				       effortProbability: 0.25, maxEffort: 30 * 60,
+				       isHabitProbability: 0.2});
+
+	var activityRandomizer = createActivityRandomizer({beforeWorkProbability: 0.005,
+							   morning: 8, morningProbability: 0.8,
+							   lunch: 12, lunchProbability: 0.2,
+							   afternoon: 13, afternoonProbability: 0.7,
+							   evening: 17, eveningProbability: 0.1,
+							   weekendShift: 5});
+
+	var data = randomData(projects, "2016-01-01", "2019-08-31", activityRandomizer, 100);
+
+	if(false) { console.log(projects); console.log(data); }
+
+	readData(data.join('\n'));
+    }
+    /* DEMO AND TESTS ONLY */
+}
+
+function displayHelp() {
+    document.getElementById("help-container").setAttribute("visibility", "true");
+    document.getElementById("content").setAttribute("visibility", "hidden");
+    document.getElementById("help-close").addEventListener("click", hideHelp);
+}
+
+function hideHelp() {
+    document.getElementById("help-container").setAttribute("visibility", "false");
+    document.getElementById("content").removeAttribute("visibility");
+}
+
+function displayLicense() {
+    document.getElementById("license-container").setAttribute("visibility", "true");
+    document.getElementsByTagName("body")[0].setAttribute("visibility", "soft");
+    window.onclick = hideLicense;
+}
+
+function hideLicense(event) {
+    if(event.target == document.getElementById("license-container")) {
+	document.getElementById("license-container").setAttribute("visibility", "false");
+	document.getElementsByTagName("body")[0].setAttribute("visibility", "hard");
+	window.onclick = null;
+    }
+}
+
 const defaultStep = 15;
 
 class Data {
@@ -98,7 +190,7 @@ class Data {
 	this.flattenedTasks = flattenTasks(this.tasks);
 
 	this.firstDate = this.flattenedTasks.reduce((accu, {start:start}) => accu.isBefore(moment(start)) ? accu : moment(start), moment()).toDate();
-	this.lastDate = this.flattenedTasks.reduce((accu, {end:end}) => accu.isAfter(moment(end)) ? accu : moment(end), moment()).toDate();
+	this.lastDate = this.flattenedTasks.reduce((accu, {end:end}) => accu.isAfter(moment(end)) ? accu : moment(end), moment(0)).toDate();
 
 	this.collectTags();
 
@@ -141,96 +233,10 @@ class Data {
     }
 }
 
-window.onload = async function () {
-
-    var help = load('./help.html', "help-content");
-    var license = load('./license.html', "license-content");
-
-    document.getElementById('help').addEventListener('click', displayHelp);
-    document.getElementById('license').addEventListener('click', displayLicense);
-
-    d3.select('#average-hours').selectAll('option').data(d3.range(0,24)).enter()
-	.append('option').attr("value", hour => hour).text(hour => displayTwoDigits(hour));
-    document.getElementById('average-hours').value = "7";
-    document.getElementById('average-hours').addEventListener('change', draw);
-    d3.select('#average-minutes').selectAll('option').data(d3.range(0,60)).enter()
-	.append('option').attr("value", minutes => minutes).text(minutes => displayTwoDigits(minutes));
-    document.getElementById('average-minutes').value = "0";
-    document.getElementById('average-minutes').addEventListener('change', draw);
-
-    document.getElementById('day-pace').value = defaultStep;
-    document.getElementById('day-pace').addEventListener('change', drawDayAfterPaceChange);
-
-    document.getElementById('display-weekends').addEventListener('change', draw);
-    document.getElementById('weekends-as-bonus').addEventListener('change', draw);
-
-    document.getElementById('first-glance').addEventListener('click', toggleFirstGlance);
-    document.getElementById('first-glance-weekdays').addEventListener('change', draw);
-    document.getElementById('first-glance-months').addEventListener('change', draw);
-    document.getElementById('first-glance-years').addEventListener('change', draw);
-
-    document.getElementById('file-input').addEventListener('change', readFile, false);
-
-    window.startingDatePicker = new Pikaday({ field: document.getElementById('starting-date') });
-    window.endingDatePicker = new Pikaday({ field: document.getElementById('ending-date') });
-
-    /* DEMO AND TESTS ONLY */
-    if(true) {
-	var projects = randomProjects({headlines:20,
-				       maxDepth: 4, maxChildren: 4,
-				       tagsProbability: 0.35, maxTags: 4,
-				       effortProbability: 0.25, maxEffort: 30 * 60,
-				       isHabitProbability: 0.5});
-
-	var activityRandomizer = createActivityRandomizer({beforeWorkProbability: 0.005,
-							   morning: 8, morningProbability: 0.8,
-							   lunch: 12.5, lunchProbability: 0.2,
-							   afternoon: 13.5, afternoonProbability: 0.7,
-							   evening: 17, eveningProbability: 0.1,
-							   weekendShift: 5});
-
-	var data = randomData(projects, "2016-01-01", "2019-09-01", activityRandomizer, 100);
-
-	console.log(projects); console.log(data);
-
-	readData(data.join('\n'));
-    }
-    /* DEMO AND TESTS ONLY */
-
-    await help;
-    await license;
-}
-
-function displayHelp() {
-    document.getElementById("help-container").setAttribute("visibility", "true");
-    document.getElementById("content").setAttribute("visibility", "hidden");
-    document.getElementById("help-close").addEventListener("click", hideHelp);
-}
-
-function hideHelp() {
-    document.getElementById("help-container").setAttribute("visibility", "false");
-    document.getElementById("content").removeAttribute("visibility");
-}
-
-function displayLicense() {
-    document.getElementById("license-container").setAttribute("visibility", "true");
-    document.getElementsByTagName("body")[0].setAttribute("visibility", "soft");
-    window.onclick = hideLicense;
-}
-
-function hideLicense(event) {
-    if(event.target == document.getElementById("license-container")) {
-	document.getElementById("license-container").setAttribute("visibility", "false");
-	document.getElementsByTagName("body")[0].setAttribute("visibility", "hard");
-	window.onclick = null;
-    }
-}
-
 function readFile(event) {
     var reader = new FileReader();
 
     reader.onloadend = e => readData(e.target.result);
-    console.log(event.target.files[0])
     reader.readAsText(event.target.files[0]);
 }
 
@@ -282,7 +288,18 @@ function toggleFirstGlance() {
     draw();
 }
 
+function error(colunm) {
+
+}
+
 function parse(data) {
+
+    ['task', 'parents', 'category', 'start', 'end'].forEach(column => {
+	if(!data.hasOwnProperty(column)) {
+	    alert("Cannot find '" + column + "' column.");
+	    throw "Cannot find '" + column + "' column.";
+	}
+    });
 
     var parents = new Array(data.category)
 	.concat(data.parents.split('/').filter(value => 0 < value.length))
@@ -309,15 +326,17 @@ function parse(data) {
     }
 
     data.tags = new Set(data.tags.split(':').filter(tag => 0 < tag.length));
-    if(!task.hasOwnProperty('tags'))
-	task.tags = data.tags;
-    else
-	data.tags.forEach(tag => task.tags.add(tag));
+    if(data.hasOwnProperty('tags')) {
+	if(!task.hasOwnProperty('tags'))
+	    task.tags = data.tags;
+	else
+	    data.tags.forEach(tag => task.tags.add(tag));
+    }
 
-    if(!task.hasOwnProperty('effort'))
+    if(!task.hasOwnProperty('effort') && data.hasOwnProperty('effort'))
 	task.effort = data.effort;
 
-    if(!task.hasOwnProperty('ishabit'))
+    if(!task.hasOwnProperty('ishabit') && data.hasOwnProperty('ishabit'))
 	task.ishabit = data.ishabit;
 
     const start = new Date(data.start);
@@ -347,7 +366,14 @@ function drawDayAfterPaceChange() {
 	    window.data.current.totalTime);
 }
 
-async function draw(plot) {
+function filterTasks(flattenedTasks, filter) {
+    return flattenedTasks.reduce((result, entry) => {
+	Array.prototype.push.apply(result, filter(entry));
+	return result;
+    }, []);
+}
+
+function draw(plot) {
 
     var target = parseInt(document.getElementById('average-hours').value) * 60
 	+ parseInt(document.getElementById('average-minutes').value);
@@ -361,19 +387,15 @@ async function draw(plot) {
     var hasFirstGlanceMonths = document.querySelector('#first-glance-months').checked;
     var hasFirstGlanceYears = document.querySelector('#first-glance-years').checked;
 
-    var startingDate = window.startingDatePicker.getDate();
-    var endingDate = window.endingDatePicker.getDate();
+    var startingDate = window.startingDatePicker.getMoment().format('YYYY-MM-DD');
+    var endingDate = window.endingDatePicker.getMoment().format('YYYY-MM-DD');
 
     window.data.current.filter = createSplittingFilter(window.data.selectedTasks,
 						       startingDate, endingDate);
-    window.data.current.tasks = [];
-    window.data.flattenedTasks.reduce((result, entry) => {
-	Array.prototype.push.apply(result, window.data.current.filter(entry));
-	return result;
-    }, window.data.current.tasks);
+    window.data.current.tasks = filterTasks(window.data.flattenedTasks, window.data.current.filter);
 
     window.data.current.day = reduceInterval(window.data.current.tasks, dayPace);
-    window.data.current.calendar = reduceDuration(window.data.current.tasks)
+    window.data.current.calendar = reduceDuration(window.data.current.tasks);
 
     window.data.current.totalTime = d3.sum(window.data.current.calendar, day => day.duration);
     window.data.current.daysCount = extractDaysInfo(window.data.current.calendar);
@@ -384,7 +406,7 @@ async function draw(plot) {
 	    weekendsAsBonus ? window.data.current.daysCount.weekdays : window.data.current.daysCount.days,
 	    window.data.current.totalTime);
 
-    drawHeadlines();
+    drawHeadlines(window.data.current.filter, target);
 
     drawCalendar(window.data.current.calendar, target,
 		 displayWeekends, weekendsAsBonus,
@@ -449,9 +471,9 @@ function drawDay(data, step, numberOfDays, totalTime) {
 	.text(hours => moment().startOf('day').hours(hours).format('HH:mm'));
 }
 
-function drawHeadlines() {
+function drawHeadlines(filter, target) {
     drawTags();
-    drawBrowser();
+    drawBrowser(filter, target);
 }
 
 function drawTags() {
@@ -474,7 +496,7 @@ function drawTags() {
 	.on("click", flipTags);
 }
 
-function drawBrowser() {
+function drawBrowser(filter, target) {
     document.getElementById('browser').innerHTML = '';
 
     function recurse(ul) {
@@ -498,6 +520,15 @@ function drawBrowser() {
 	    .style("color", ([selected,tag]) => window.data.getColorOf(tag, selected))
 	    .style("background-color", ([selected,tag]) => window.data.getBackgroundColorOf(tag, selected));
 
+	li.append('span')
+	    .attr("class", "total")
+	    .text(task => {
+		const flattened = flattenTask([], task);
+		const filtered = filterTasks(flattened, filter);
+		const reduced = reduceDuration(filtered);
+		return displayLongDuration(d3.sum(reduced, ({duration:duration}) => duration), target);
+	    });
+
 	if(!li.empty()) {
 	    ul = li.filter(task => 0 < task.subtasks.length)
 		.append('ul').selectAll('ul')
@@ -505,9 +536,7 @@ function drawBrowser() {
 		.enter();
 
 	    recurse(ul);
-
 	}
-
     }
 
     d3.select("#browser").selectAll('ul')
@@ -548,7 +577,10 @@ function drawCalendar(data, target,
 
     const meanPerDay = days => d3.sum(days, day => sumDay(day)) / countDays(days);
     const sigmForDay = days => d3.deviation(days, day => sumDay(day));
-    const ellipseRadix = (days, radix, max) => Math.min(radix  * meanPerDay(days) / sigmForDay(days), max);
+    const ellipseRadix = (days, radix, max) => {
+	const sigma = sigmForDay(days);
+	return Math.min(radix  * (sigma == 0 ? 1 : meanPerDay(days) / sigma), max);
+    }
 
     //Data
     const years = d3.nest().key(d => moment(d.date).year()).entries(data).reverse();

@@ -3,8 +3,8 @@
 path=$(realpath $(dirname $BASH_SOURCE))
 
 emacs_init="~/.emacs.d/init.el"
-org_clock_csv=$path"/org-clock-csv/org-clock-csv.el"
 output="stats.csv"
+org_clock_csv=$path"/org-clock-csv/org-clock-csv.el"
 
 usage()
 {

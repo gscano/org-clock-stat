@@ -6,22 +6,24 @@
 
     <meta charset="UTF-8"/>
     <meta name="description" content="Visualize Org-mode clocked working time"/>
-    <meta name="keywords" content="Org-mode,clock,stat"/>
+    <meta name="keywords" content="Org-mode,clock,statistics"/>
     <meta name="author" content="Grégoire Scano"/>
 
     <link rel="stylesheet" href="index.css"/>
 
-    <!---->
+    <!-- local install -->
     <script src="./d3.js"></script>
     <script src="./moment.js"></script>
     <script src="./pikaday.js"></script>
     <link rel="stylesheet" href="./pikaday.css"/>
+    <!-- local install -->
 
+    <!-- remote install -->
     <!-- <script src="https://d3js.org/d3.v5.js"></script> -->
     <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment-with-locales.js"></script> -->
     <!-- <script src="https://cdn.jsdelivr.net/npm/pikaday/pikaday.js"></script> -->
     <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pikaday/css/pikaday.css"/> -->
-    <!---->
+    <!-- remote install -->
 
     <script src="./index.js"></script>
     <script src="./lib.js"></script>
@@ -32,21 +34,19 @@
   <body>
 
     <div id="help-container" class="modal-container" visibility="false">
-      <div id="help-content">
-      </div>
+      <div id="help-content"></div>
     </div>
 
     <div id="license-container" class="modal-container" visibility="false">
-      <div id="license-content">
-      </div>
+      <div id="license-content"></div>
     </div>
 
     <div id="content">
       <div id="config">
 
-	<span>
-	  <span id="help">?</span>
-	  <span id="license">©</span>
+	<span id="misc">
+	  <a id="help" href="./help.html" target="_blank">?</a>
+	  <a id="license" href="./license.html" target="_blank">©</a>
 	</span>
 
 	<span>
@@ -58,7 +58,7 @@
 	</span>
 
 	<span>
-	  <label for="pace">Pace day by</label>
+	  <span for="pace">Pace day by</span>
 	  <input type="number" id="day-pace" min="1" max="120" maxlength="3"/>
 	  minutes.
 	</span>

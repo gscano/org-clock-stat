@@ -1,5 +1,4 @@
-// Project: [String: category, [String]: parents, String: tasks,
-//           [String]: tags, Boolean: isHabit, String: effort]
+// Project: [String: category, [String]: parents, String: tasks, [String]: tags, Boolean: isHabit, String: effort]
 
 // Integer => [Project] => Integer => [String] => Integer => Integer => Float[0,1] => Integer => Float[0,1] => Integer => Float[0,1] => Integer
 function randomProject(headlines, projects,
@@ -84,33 +83,34 @@ function createActivityRandomizer({beforeWorkProbability: beforeWorkProbability,
 	const hours = date.hours();
 
 	if(hours < morning)
-	    return rand < beforeWorkProbability;
+	    return [rand < beforeWorkProbability, (morning - hours) / (morning - 0)];
 	else if(hours < lunch)
-	    return rand < morningProbability;
+	    return [rand < morningProbability, (lunch - hours) / (lunch - morning)];
 	else if(hours < afternoon)
-	    return rand < lunchProbability;
+	    return [rand < lunchProbability, (afternoon - hours) / (afternoon - lunch)];
 	else if(hours < evening)
-	    return rand < afternoonProbability;
+	    return [rand < afternoonProbability, (evening - hours) / (evening - afternoon)];
 	else
-	    return rand < eveningProbability;
+	    return [rand < eveningProbability, (24 - hours) / (24 - evening)];
     }
 }
 
-// [Project] => Date => Date => Integer => Float[0,1] => [String]
-function randomData(projects, from, to, activityProbability, max = 100) {
+// [Project] => Date => Date => (Date => Float[0,1]) => Integer => [String]
+function randomData(projects, from, to, activityRandomizer, workingStep) {
 
     csv = ["task,parents,category,start,end,effort,ishabit,tags"];
 
     from = moment(from);
     to = moment(to);
 
-    while(!from.isSame(to, 'date')) {
+    while(!from.isAfter(to, 'date')) {
+	let [work, step] = activityRandomizer(from);
 
-	var duration = from.clone();
+	if(work) {
+	    const from_ = from.format('YYYY-MM-DD HH:mm');
 
-	duration.add(Math.floor(Math.random() * max) + 1, 'minutes');
+	    from.add(Math.floor(Math.random() * step * workingStep) + 1, 'minutes');
 
-	if(activityProbability(from)) {
 	    var index = Math.floor(Math.random() * projects.length);
 	    var project = projects[index];
 
@@ -120,8 +120,8 @@ function randomData(projects, from, to, activityProbability, max = 100) {
 	    line.push(project[1].slice(0, Math.min(Math.floor(Math.random() * project[1].length^2), project[1].length)).join('/'));
 	    line.push(project[0]);
 
+	    line.push(from_);
 	    line.push(from.format('YYYY-MM-DD HH:mm'));
-	    line.push(duration.format('YYYY-MM-DD HH:mm'));
 
 	    line.push(project[5]);
 	    line.push(project[4] ? 't' : null);
@@ -129,8 +129,8 @@ function randomData(projects, from, to, activityProbability, max = 100) {
 
 	    csv.push(line.join(','));
 	}
-
-	from = duration;
+	else
+	    from.add(Math.floor(Math.random() * step * workingStep) + 1, 'minutes');
     }
 
     return csv;

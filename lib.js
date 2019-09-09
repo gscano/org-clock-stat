@@ -31,8 +31,14 @@ function createSplittingFilter(ids, from, to, specific = null, moment_ = 'date')
 	var result = [];
 
 	if(ids.has(data.id)) {
-	    var start = moment.max(moment(data.start), from);
-	    var end = moment.min(moment(data.end), to);
+	    var start = moment(data.start);
+	    var end = moment(data.end);
+
+	    if(start.isAfter(to) || end.isBefore(from)) return result;
+
+	    start = moment.max(start, from);
+	    end = moment.min(end, to);
+
 	    var current = moment.min(start.clone().add(1, 'days').startOf('day'), end);
 
 	    if(specific == null || (specific != null && start.isSame(specific, moment_)))
@@ -225,20 +231,23 @@ function stringToColor(str) {
     return `rgb(${R}, ${G}, ${B})`;
 }
 
-async function load(path, id) {
+function load(path) {
+    return new Promise((resolve, reject) => {
 
-    if(!window.location.href.startsWith("file")) {
+	if(window.location.href.startsWith("file:///"))
+	    return reject("Cannot load '" + path + "' (file:///).");
+
 	var xhr = new XMLHttpRequest();
 
-	xhr.open('GET', path);
+	xhr.open('GET', path, true);
 
 	xhr.onload = function() {
 	    if (xhr.status === 200)
-		document.getElementById(id).innerHTML = xhr.responseText;
+		resolve(xhr.responseText);
 	    else
-		document.getElementById(id).innerHTML = "Cannot load '" + path + "' (" + xhr.status + ").";
-	};
+		reject("Cannot load '" + path + "' (" + xhr.statusText + ")");
+	}
 
 	xhr.send();
-    }
+    });
 }

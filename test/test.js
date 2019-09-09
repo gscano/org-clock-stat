@@ -39,7 +39,7 @@ verify(flattenTasks([t1,t2]), [bundle(d1,d2),bundle(d3,d4)]);
 /* FLATTEN */
 
 /* FILTER & SPLIT */
-function raw(id, start, end) { return {id:id, start:start, end:end}; };
+function raw(id, start, end) { return {id:id, start:start, end:end}; }
 
 var ids = new Set([2,3]);
 var filter = createSplittingFilter(ids, "2019-08-09", "2019-08-09");

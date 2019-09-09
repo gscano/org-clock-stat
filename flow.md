@@ -4,7 +4,7 @@
 
 * create events
 * create date pickers
-* for demo and tests only, first generate random data then trigger `readData`
+* [for demo and tests only], first generate random data then trigger `readData`
 
 ## `readFile`
 
@@ -12,20 +12,32 @@
 
 ## `readData`
 
-* parse text as csv `task,parents,category,start,end,effort,ishabit,tags` formatted rows with an arbitrary order
+* parse text as CSV `task,parents,category,start,end,effort,ishabit,tags` formatted rows with an arbitrary order
 * complete data analysis
-**  assigning IDs etc
-* initialize data pickers
+  * assigning IDs to headlines
+  * counting headlines subheadlines
+  * find bounding dates
+  * collect tags
+  * initiate selection
+* initialize date pickers with bounding dates
 * `draw`
+
+## `drawDayAfterPaceChange`
+
+* collect day pace
+* verify its value
+* collect weekends bonus
+* reduce day interval
+* `drawDays`
 
 ## `draw`
 
 * collect configuration
-** target average
-** day pace
-** display weekends / bonus
-** first glance
-** starting and ending dates
+  * target average
+  * day pace
+  * display weekends / bonus
+  * first glance
+  * starting and ending dates
 * create the associated filter
 * filter `flattenedTasks` to `current.tasks`
 * reduce day interval

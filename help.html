@@ -26,6 +26,13 @@
     padding: 15px;
     }
 
+    .help-config-desc
+    {
+    display: block;
+    text-align: left;
+    padding: 15px;
+    }
+
     #help-day
     {
     text-align: center;
@@ -64,21 +71,21 @@
 	per day.
       </span>
       <hr/>
-      <p style="width: 250px">
+      <div class="help-config-desc" style="width: 250px">
 	Used in the <b>calendar</b> view to center the color of a day around this targeted average value.
-      </p>
+      </div>
     </div>
 
     <div class="help-block">
       <span>
-	<label>Pace day by</label>
-	<input type="number" disabled="true" value="60" min="1" max="120" maxlength="3"/>
+	<span>Pace day by</span>
+	<input type="number" disabled="true" value="60" maxlength="3"/>
 	minutes.
       </span>
       <hr/>
-      <p style="width: 300px">
+      <div class="help-config-desc" style="width: 300px">
 	Used in the <b>day</b> view as the time span of each box.
-      </p>
+      </div>
     </div>
 
     <div class="help-block">
@@ -91,9 +98,14 @@
 	<label>bonus.</label>
       </span>
       <hr/>
-      <p style="width: 350px">
-	Display weekend days in the <b>calendar</b> view
-      </p>
+      <div class="help-config-desc" style="width: 350px">
+	Display weekend days in the <b>calendar</b> view.
+	<br/>
+	The weekend bonus is used:
+	<ul>
+	  <li>in the <b>calendar</b> view</li>
+	</ul>
+      </div>
     </div>
 
     <div class="help-block">
@@ -110,13 +122,13 @@
 	<label>years.</label>
       </span>
       <hr/>
-      <p style="width: 500px">
-	Independently display, for <i>weekdays<i>, <i>months</i> and <i>years</i> an ellipse in the <b>calendar</b> view such that:
-	    <ul style="text-align: left; width: 500px">
-	      <li>its color is centered around the <b>average</b> targeted day accross all the corresponding period of time;</li>
-	      <li>its X radius is a factor of the average per day divided by the standard deviation, yielding a circle for a standard deviation of 0.</li>
-	    </ul>
-      </p>
+      <div class="help-config-desc" style="width: 500px">
+      Independently display, for <i>weekdays<i>, <i>months</i> and <i>years</i> an ellipse in the <b>calendar</b> view such that:
+      <ul style="text-align: left; width: 500px">
+	<li>its color is centered around the <b>average</b> targeted day accross all the corresponding period of time;</li>
+	<li>its X radius is a factor of the average per day divided by the standard deviation, yielding a circle for a standard deviation of 0.</li>
+      </ul>
+      </div>
     </div>
 
   </div>
@@ -199,6 +211,7 @@
 
   <div id="help-headlines" class="help-block" >
     <h2>Headlines</h2>
+    <hr/>
   </div>
 
   <div id="help-calendar" class="help-block" >
@@ -206,9 +219,9 @@
 
     <svg width="1124" height="200">
       <g transform="translate(50,40)">
-	<g class="calendar-year"><text>2019</text>
-	  <ellipse cx="20" cy="-6" ry="8" rx="-0.8956734983974911" fill="rgb(255, 255, 255)"><title>0-767293:0-49</title>
-	  </ellipse>
+	<g class="calendar-year">
+	  <text>2019</text>
+	  <ellipse cx="60" cy="-6" ry="8" rx="10.8956734983974911" fill="rgb(0, 118, 0)"><title>0-767293:0-49</title></ellipse>
 	</g>
 	<g class="calendar-weekday" transform="translate(-30,24)">
 	  <g transform="translate(3, 50.400000000000006)"><text>Thursday</text></g>
@@ -224,8 +237,8 @@
 	  <g transform="translate(338,0)"><text>May</text></g>
 	  <g transform="translate(262,0)"><text>Apr</text></g></g>
 	<g class="calendar-day" transform="translate(70,10)">
-	  <rect width="16" height="16" transform="translate(262,51)" fill="rgb(0, 0, 0)"><title>2019-04-04 185644:29</title></rect>
-	  <rect width="16" height="16" transform="translate(262,68)" fill="rgb(255, 255, 255)"><title>2019-04-05 0-110676614:0-33</title></rect>
+	  <rect width="16" height="16" transform="translate(262,51)" fill="rgb(0, 118, 0)"><title>2019-04-04 07:32</title></rect>
+	  <rect width="16" height="16" transform="translate(262,68)" fill="rgb(62, 159, 62)"><title>2019-04-05 05:18</title></rect>
 	  <rect width="16" height="16" transform="translate(279,34)" fill="rgb(0, 107, 0)"><title>2019-04-10 08:10</title></rect>
 	  <rect width="16" height="16" transform="translate(279,51)" fill="rgb(39, 147, 39)"><title>2019-04-11 05:56</title></rect>
 	  <rect width="16" height="16" transform="translate(279,68)" fill="rgb(0, 113, 0)"><title>2019-04-12 07:48</title></rect>
@@ -334,7 +347,7 @@
 	</g>
       </g>
     </svg>
-
+    <hr/>
     Display every day between the <b>starting date</b> to the <b>ending date</b>
   </div>
 

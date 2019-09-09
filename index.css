@@ -1,3 +1,8 @@
+body[visibility=soft]
+{
+    overflow: hidden;
+}
+
 .modal-container[visibility=false]
 {
     display: none;
@@ -14,11 +19,6 @@
 
     left: 0;
     top: 0;
-}
-
-#help-content
-{
-
 }
 
 #license-container
@@ -49,11 +49,6 @@
     width: 60%;
 }
 
-body[visibility=soft]
-{
-    overflow: hidden;
-}
-
 #content[visibility=hidden]
 {
     visibility: hidden;
@@ -65,6 +60,17 @@ body[visibility=soft]
     justify-content: space-between;
 }
 
+#config #misc a
+{
+    text-decoration: none;
+    cursor: default;
+}
+
+#pace
+{
+    cursor: text;
+}
+
 #config #day-pace
 {
     width: 50px;
@@ -72,7 +78,7 @@ body[visibility=soft]
 
 #config #first-glance
 {
-    cursor: pointer;
+    cursor: default;
 }
 
 #select
@@ -157,6 +163,11 @@ ul.tags li
 .task[is-selected=false]
 {
     font-weight: normal;
+}
+
+.total
+{
+    text-align: right;
 }
 
 #calendar

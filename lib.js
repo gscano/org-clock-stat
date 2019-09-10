@@ -7,7 +7,7 @@ function flattenTasks(tasks, result = []) {
 function flattenTask(result, task) {
 
     task.entries.reduce((result, entry) => {
-	result.push({id: task.id, start: entry[0], end: entry[1]});
+	result.push({id: task.id, start: entry.start, end: entry.end});
 	return result;
     }, result);
 

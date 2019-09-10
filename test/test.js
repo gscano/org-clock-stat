@@ -20,13 +20,15 @@ const d3 = "2019-08-10 02:12";
 const d4 = "2019-08-11 23:41";
 
 /* FLATTEN */
-const t1 = {'entries': [[d1,d2]], 'subtasks': []};
-const t2 = {'entries': [[d3,d4]], 'subtasks': []};
-const t3 = {'entries': [[d1,d2]],
-	    'subtasks': [{'entries': [[d2,d3]], 'subtasks' : []}] };
-const t4 = {'entries': [[d1,d2]],
-	    'subtasks': [{'entries': [[d2,d3]],
-			  'subtasks': [{'entries': [[d3,d4]], 'subtasks': []}] }] };
+function range(start, end) { return {start: start, end: end}; }
+
+const t1 = {'entries': [range(d1,d2)], 'subtasks': []};
+const t2 = {'entries': [range(d3,d4)], 'subtasks': []};
+const t3 = {'entries': [range(d1,d2)],
+	    'subtasks': [{'entries': [range(d2,d3)], 'subtasks' : []}] };
+const t4 = {'entries': [range(d1,d2)],
+	    'subtasks': [{'entries': [range(d2,d3)],
+			  'subtasks': [{'entries': [range(d3,d4)], 'subtasks': []}] }] };
 
 function bundle(start,end) { return {"id":undefined,"start":start,"end":end}; }
 

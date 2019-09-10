@@ -119,7 +119,6 @@ body[visibility=soft]
 ul.tags
 {
     display: inline;
-
 }
 
 ul.tags li
@@ -136,7 +135,7 @@ ul.tags li
 
 #browser
 {
-    width: 33%;
+    width: 50%;
 }
 
 #browser li

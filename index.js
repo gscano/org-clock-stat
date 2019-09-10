@@ -1,5 +1,9 @@
 window.onload = async function () {
 
+    window.isLocal = window.location.href.startsWith('file:///');
+
+    console.log(isLocal)
+
     load('./help.html')
 	.then(content => {
 	    document.getElementById('help-content').innerHTML = content;
@@ -19,22 +23,22 @@ window.onload = async function () {
     d3.select('#average-hours').selectAll('option').data(d3.range(0,24)).enter()
 	.append('option').attr("value", hour => hour).text(hour => displayTwoDigits(hour));
     document.getElementById('average-hours').value = "7";
-    document.getElementById('average-hours').addEventListener('change', draw);
+    document.getElementById('average-hours').addEventListener('change', drawOnAverageChange);
     d3.select('#average-minutes').selectAll('option').data(d3.range(0,60)).enter()
 	.append('option').attr("value", minutes => minutes).text(minutes => displayTwoDigits(minutes));
     document.getElementById('average-minutes').value = "0";
-    document.getElementById('average-minutes').addEventListener('change', draw);
+    document.getElementById('average-minutes').addEventListener('change', drawOnAverageChange);
 
     document.getElementById('day-pace').value = defaultStep;
-    document.getElementById('day-pace').addEventListener('change', drawDayAfterPaceChange);
+    document.getElementById('day-pace').addEventListener('change', drawOnDayPaceChange);
 
     document.getElementById('display-weekends').addEventListener('change', draw);
     document.getElementById('weekends-as-bonus').addEventListener('change', draw);
 
     document.getElementById('first-glance').addEventListener('click', toggleFirstGlance);
-    document.getElementById('first-glance-weekdays').addEventListener('change', draw);
-    document.getElementById('first-glance-months').addEventListener('change', draw);
-    document.getElementById('first-glance-years').addEventListener('change', draw);
+    document.getElementById('first-glance-weekdays').addEventListener('change', drawOnFirstGlanceChange);
+    document.getElementById('first-glance-months').addEventListener('change', drawOnFirstGlanceChange);
+    document.getElementById('first-glance-years').addEventListener('change', drawOnFirstGlanceChange);
 
     document.getElementById('file-input').addEventListener('change', readFile, false);
 
@@ -285,11 +289,7 @@ function toggleFirstGlance() {
     document.querySelector('#first-glance-months').checked = !value;
     document.querySelector('#first-glance-years').checked = !value;
 
-    draw();
-}
-
-function error(colunm) {
-
+    drawOnFirstGlanceChange();
 }
 
 function parse(data) {
@@ -345,10 +345,14 @@ function parse(data) {
     if(!moment(start).isBefore(end))
 	alert("Not adding '" + task.name + "'[" + start + " => " + end + "].");
 
-    task.entries.push([start, end]);
+    task.entries.push({start:start, end:end});
 }
 
-function drawDayAfterPaceChange() {
+function drawOnAverageChange() {
+    draw(['headlines', 'calendar']);
+}
+
+function drawOnDayPaceChange() {
     var dayPace = parseInt(document.getElementById('day-pace').value);
 
     if(dayPace <= 0 || 120 < dayPace) {
@@ -356,14 +360,11 @@ function drawDayAfterPaceChange() {
 	dayPace = defaultStep;
     }
 
-    var weekendsAsBonus = document.querySelector('#weekends-as-bonus').checked;
+    draw(['day']);
+}
 
-    window.data.current.day = reduceInterval(window.data.current.tasks, dayPace);
-    console.log(window.data);
-
-    drawDay(window.data.current.day, dayPace,
-	    weekendsAsBonus ? window.data.current.daysCount.weekdays : window.data.current.daysCount.days,
-	    window.data.current.totalTime);
+function drawOnFirstGlanceChange() {
+    draw(['calendar']);
 }
 
 function filterTasks(flattenedTasks, filter) {
@@ -373,9 +374,9 @@ function filterTasks(flattenedTasks, filter) {
     }, []);
 }
 
-function draw(plot) {
+function draw(elements = ['day', 'headlines', 'calendar']) {
 
-    var target = parseInt(document.getElementById('average-hours').value) * 60
+    var averagePerDay = parseInt(document.getElementById('average-hours').value) * 60
 	+ parseInt(document.getElementById('average-minutes').value);
 
     var dayPace = parseInt(document.getElementById('day-pace').value);
@@ -394,23 +395,31 @@ function draw(plot) {
 						       startingDate, endingDate);
     window.data.current.tasks = filterTasks(window.data.flattenedTasks, window.data.current.filter);
 
-    window.data.current.day = reduceInterval(window.data.current.tasks, dayPace);
-    window.data.current.calendar = reduceDuration(window.data.current.tasks);
+    if(elements.includes('calendar')) {
+	window.data.current.calendar = reduceDuration(window.data.current.tasks);
 
-    window.data.current.totalTime = d3.sum(window.data.current.calendar, day => day.duration);
-    window.data.current.daysCount = extractDaysInfo(window.data.current.calendar);
+	window.data.current.totalTime = d3.sum(window.data.current.calendar, day => day.duration);
+	window.data.current.daysCount = extractDaysInfo(window.data.current.calendar);
+    }
+
+    if(elements.includes('day')) {
+	window.data.current.day = reduceInterval(window.data.current.tasks, dayPace);
+    }
 
     console.log(window.data);
 
-    drawDay(window.data.current.day, dayPace,
-	    weekendsAsBonus ? window.data.current.daysCount.weekdays : window.data.current.daysCount.days,
-	    window.data.current.totalTime);
+    if(elements.includes('day'))
+	drawDay(window.data.current.day, dayPace,
+		weekendsAsBonus ? window.data.current.daysCount.weekdays : window.data.current.daysCount.days,
+		window.data.current.totalTime);
 
-    drawHeadlines(window.data.current.filter, target);
+    if(elements.includes('headlines'))
+	drawHeadlines(window.data.current.filter, averagePerDay);
 
-    drawCalendar(window.data.current.calendar, target,
-		 displayWeekends, weekendsAsBonus,
-		 hasFirstGlanceWeekdays, hasFirstGlanceMonths, hasFirstGlanceYears);
+    if(elements.includes('calendar'))
+	drawCalendar(window.data.current.calendar, averagePerDay,
+		     displayWeekends, weekendsAsBonus,
+		     hasFirstGlanceWeekdays, hasFirstGlanceMonths, hasFirstGlanceYears);
 }
 
 function drawDay(data, step, numberOfDays, totalTime) {
@@ -471,9 +480,9 @@ function drawDay(data, step, numberOfDays, totalTime) {
 	.text(hours => moment().startOf('day').hours(hours).format('HH:mm'));
 }
 
-function drawHeadlines(filter, target) {
+function drawHeadlines(filter, averagePerDay) {
     drawTags();
-    drawBrowser(filter, target);
+    drawBrowser(filter, averagePerDay);
 }
 
 function drawTags() {
@@ -496,7 +505,7 @@ function drawTags() {
 	.on("click", flipTags);
 }
 
-function drawBrowser(filter, target) {
+function drawBrowser(filter, averagePerDay) {
     document.getElementById('browser').innerHTML = '';
 
     function recurse(ul) {
@@ -510,6 +519,14 @@ function drawBrowser(filter, target) {
 	    .attr("is-habit", task => task.ishabit ? "true" : "false")
 	    .on("click", flipTask);
 
+	li.append('span')
+	    .text(task => {
+		const flattened = flattenTask([], task);
+		const filtered = filterTasks(flattened, filter);
+		const reduced = reduceDuration(filtered);
+		return displayLongDuration(d3.sum(reduced, ({duration:duration}) => duration), averagePerDay);
+	    });
+
 	li.filter(task => task.hasOwnProperty('tags') && 0 < task.tags.size)
 	    .append('ul').attr("class", "tags").selectAll('ul')
 	    .data(task => Array.from(task.tags).sort().map(tag => [window.data.selectedTasks.has(task.id), tag]))
@@ -519,15 +536,6 @@ function drawBrowser(filter, target) {
 	    .attr("is-selected", ([selected,tag]) => selected)
 	    .style("color", ([selected,tag]) => window.data.getColorOf(tag, selected))
 	    .style("background-color", ([selected,tag]) => window.data.getBackgroundColorOf(tag, selected));
-
-	li.append('span')
-	    .attr("class", "total")
-	    .text(task => {
-		const flattened = flattenTask([], task);
-		const filtered = filterTasks(flattened, filter);
-		const reduced = reduceDuration(filtered);
-		return displayLongDuration(d3.sum(reduced, ({duration:duration}) => duration), target);
-	    });
 
 	if(!li.empty()) {
 	    ul = li.filter(task => 0 < task.subtasks.length)
@@ -552,7 +560,7 @@ function drawBrowser(filter, target) {
 	.on("click", flipTasks);
 }
 
-function drawCalendar(data, target,
+function drawCalendar(data, averagePerDay,
 		      displayWeekends, weekendsAsBonus,
 		      hasFirstGlanceWeekdays, hasFirstGlanceMonths, hasFirstGlanceYears) {
     document.getElementById('calendar').innerHTML = '';
@@ -573,7 +581,7 @@ function drawCalendar(data, target,
     const sumDay = ({"date":date,"duration":duration}) => (displayWeekends || weekendsAsBonus) ? duration : (isWeekday(moment(date).isoWeekday()) ? duration : 0);
     const countDays = days => days.reduce((accu, day) => accu + dayFilter(moment(day.date).isoWeekday()), 0);
 
-    const color = d3.scaleLinear().domain([0,target]).range(["white", "green"]);
+    const color = d3.scaleLinear().domain([0,averagePerDay]).range(["white", "green"]);
 
     const meanPerDay = days => d3.sum(days, day => sumDay(day)) / countDays(days);
     const sigmForDay = days => d3.deviation(days, day => sumDay(day));

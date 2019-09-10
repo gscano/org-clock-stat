@@ -37,8 +37,8 @@ window.onload = async function () {
     document.getElementById('day-pace').value = defaultStep;
     document.getElementById('day-pace').addEventListener('change', drawOnDayPaceChange);
 
-    document.getElementById('display-weekends').addEventListener('change', draw);
-    document.getElementById('weekends-as-bonus').addEventListener('change', draw);
+    document.getElementById('display-weekends').addEventListener('change', drawAll);
+    document.getElementById('weekends-as-bonus').addEventListener('change', drawAll);
 
     document.getElementById('first-glance').addEventListener('click', toggleFirstGlance);
     document.getElementById('first-glance-weekdays').addEventListener('change', drawOnFirstGlanceChange);
@@ -407,6 +407,10 @@ function filterTasks(flattenedTasks, filter) {
     }, []);
 }
 
+function drawAll() {
+    draw();
+}
+
 function draw(elements = ['day', 'headlines', 'calendar']) {
 
     var averagePerDay = parseInt(document.getElementById('average-hours').value) * 60
@@ -441,6 +445,8 @@ function draw(elements = ['day', 'headlines', 'calendar']) {
 
     console.log(window.data);
 
+    drawSelection(window.data.current.totalTime, displayWeekends ? window.data.current.daysCount.days : window.data.current.daysCount.weekdays, averagePerDay, displayWeekends ? window.data.current.daysCount.days - window.data.current.daysCount.weekdays : 0);
+
     if(elements.includes('day'))
 	drawDay(window.data.current.day, dayPace,
 		weekendsAsBonus ? window.data.current.daysCount.weekdays : window.data.current.daysCount.days,
@@ -457,6 +463,11 @@ function draw(elements = ['day', 'headlines', 'calendar']) {
 		    window.color);
 }
 
+function drawSelection(totalTime, days, averagePerDay, weekends) {
+    d3.select('span#days').text(days).attr("title", weekends + " weekend days (" + Math.floor(weekends / (days + weekends) * 100).toFixed(0) + "%)");
+    d3.select('span#hours').text(displayDuration(Math.floor(totalTime / days))).attr("title", Math.floor(totalTime / days / averagePerDay * 100).toFixed(0) + "% of the targeted average");
+}
+
 function drawDay(data, step, numberOfDays, totalTime, color) {
     document.getElementById('day').innerHTML = '';
 
@@ -469,20 +480,17 @@ function drawDay(data, step, numberOfDays, totalTime, color) {
     const interSize = 1;
 
     const palette = d3.scaleLinear().domain([0,step]).range(["white", color]);
+    const palette2 = d3.scaleLinear().domain([0,7*60]).range(["white", color]);
 
     const day = d3.select("div#day").append("svg");
 
     day.attr('width', 120 + data.length * (cellSize + interSize))
 	.attr('height', 40 + cellSize)
-	.attr("transform", `translate(0,10)`);
+	.attr("transform", `translate(0,5)`);
 
-    day.append("g")
-	.append("text").text(numberOfDays + " days")
-	.attr("transform", `translate(0,12.5)`)
-	.append("title")
-	.text("Minutes counted twice a day: " + Math.floor(sameMinuteDeviation / numberOfDays) + "  " + (100 * sameMinuteDeviation / totalTime).toFixed(2) + "%");
+    const days = day.append("g");
 
-    const shift = 70;
+    const shift = 2;
 
     day.append("g").selectAll("rect")
 	.data(data)

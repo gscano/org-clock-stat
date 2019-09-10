@@ -1,28 +1,22 @@
 <div>
   <style type="text/css" scoped>
-    .help-block
-    {
-    border: 1px solid;
-    background-color: rgba(0,0,0,0.1);
-    }
-
-    #help-config
+    .help-config
     {
     display: flex;
     justify-content: space-between;
     text-align: center;
     }
 
-    #help-config span
+    .help-block
     {
-    display: inline-block;
-    padding: 15px;
+    border: 1px solid;
+    background-color: rgba(0,0,0,0.1);
     }
 
-    #help-config p
+    .help-origin
     {
-    display: block;
-    text-align: left;
+    text-align: center;
+    display: inline-block;
     padding: 15px;
     }
 
@@ -31,6 +25,17 @@
     display: block;
     text-align: left;
     padding: 15px;
+    }
+
+    .help-csv-fields
+    {
+    display: inline;
+    list-style-type: none;
+    }
+
+    .help-csv-fields li
+    {
+    display: inline;
     }
 
     #help-day
@@ -56,14 +61,14 @@
     }
   </style>
 
-  <div id="help-config">
+  <div class="help-config">
 
     <div id="help-close">
       &times;
     </div>
 
     <div class="help-block">
-      <span>
+      <span class="help-origin">
 	Average
 	<select disabled="true"><option>07</option></select>
 	:
@@ -77,19 +82,19 @@
     </div>
 
     <div class="help-block">
-      <span>
+      <span class="help-origin">
 	<span>Pace day by</span>
-	<input type="number" disabled="true" value="60" maxlength="3"/>
+	<input type="number" min="1" max="120" style="width:60px" disabled="true" value="60" maxlength="3"/>
 	minutes.
       </span>
       <hr/>
-      <div class="help-config-desc" style="width: 300px">
-	Used in the <b>day</b> view as the time span of each box.
+      <div class="help-config-desc" style="width: 220px">
+	Used in the <b>day</b> view as the time span of each box. It is also the target of the color
       </div>
     </div>
 
     <div class="help-block">
-      <span>
+      <span class="help-origin">
 	Display
 	<input type="checkbox" disabled="true" autocomplete="off" checked="true"/>
 	<label>weekends</label>
@@ -98,18 +103,20 @@
 	<label>bonus.</label>
       </span>
       <hr/>
-      <div class="help-config-desc" style="width: 350px">
+      <div class="help-config-desc" style="width: 360px">
 	Display weekend days in the <b>calendar</b> view.
 	<br/>
-	The weekend bonus is used:
+	<br/>
+	The bonus is used when <i>weekends</i> are not displayed and increases the working time without increasing the number of days in:
 	<ul>
-	  <li>in the <b>calendar</b> view</li>
+	  <li>the <b>day</b> and <b>headlines</b> views;</li>
+	  <li>the <b>calendar</b> view for <i>first glances</i>.</li>
 	</ul>
       </div>
     </div>
 
     <div class="help-block">
-      <span>
+      <span class="help-origin">
 	<span>First glance</span>
 	for
 	<input type="checkbox" disabled="true" autocomplete="off" checked="true"/>
@@ -122,33 +129,55 @@
 	<label>years.</label>
       </span>
       <hr/>
-      <div class="help-config-desc" style="width: 500px">
-      Independently display, for <i>weekdays<i>, <i>months</i> and <i>years</i> an ellipse in the <b>calendar</b> view such that:
-      <ul style="text-align: left; width: 500px">
-	<li>its color is centered around the <b>average</b> targeted day accross all the corresponding period of time;</li>
-	<li>its X radius is a factor of the average per day divided by the standard deviation, yielding a circle for a standard deviation of 0.</li>
-      </ul>
+      <div class="help-config-desc" style="width: 450px">
+	Independently display, for <i>weekdays</i>, <i>months</i> and <i>years</i> an ellipse in the <b>calendar</b> view such that:
+	<ul style="text-align: left; width: 400px">
+	  <li>its color is centered around the <i>average</i> targeted day accross all the corresponding period of time;</li>
+	  <li>its X radius is a factor of the average per day divided by the standard deviation, yielding a circle for a standard deviation of 0.</li>
+	</ul>
       </div>
     </div>
+  </div>
 
+  <hr/>
+
+  <div style="display:block; text-align:center">
+    <div class="help-block">
+      <span class="help-origin">
+	<label>With file</label>
+	<input type="file" disabled="true" style="color: transparent;"/>
+	<span style="position: relative;z-index: 1;left: -170px;">stats.csv</span>
+	<label>from</label>
+	<input type="text" disabled="true" value="2019-04-04" size="10"/>
+
+	<label>to</label>
+	<input type="text" disabled="true" value="2019-09-04" size="10"/>
+	.
+      </span>
+      <hr/>
+      <div class="help-config-desc">
+	The CSV input file contains, in any order, the following <ins>mandatory</ins> and <del>optional</del> fields:
+	<ul class="help-csv-fields">
+	  <li><ins>task</ins></li>
+	  <li><ins>parents</ins></li>
+	  <li><ins>category</ins></li>
+	  <li><ins>start</ins></li>
+	  <li><ins>end</ins></li>
+	  <li><del>effort</del></li>
+	  <li><del>ishabit</del></li>
+	  <li><del>tags</del></li>
+	</ul>
+	.
+	<br/>
+	All displayed data in every view is within the <b>starting date</b> and the <b>ending date</b>.
+      </div>
+    </div>
   </div>
 
   <hr/>
 
   <div id="help-day" class="help-block" >
-    <h2>Day</h2>
-
-    <div id="select">
-      <label>With file</label>
-      <input type="file" disabled="true" style="color: transparent;"/>
-      <span style="position: relative;z-index: 1;left: -170px;">stats.csv</span>
-      <label>from</label>
-      <input type="text" disabled="true" value="2019-04-04" size="10"/>
-
-      <label>to</label>
-      <input type="text" disabled="true" value="2019-09-04" size="10"/>
-	.
-    </div>
+    <h2><u>Day</u></h2>
 
     <svg width="508" height="56" transform="translate(0,10)">
       <g>
@@ -198,24 +227,24 @@
 	<text transform="translate(455, 40)">00:00</text>
       </g>
     </svg>
-
     <hr/>
-    <p>
-      The CSV input file contains, in any order, the following <ins>mandatory</ins> or <del>optional</del> fields: <emp><ins>task</ins>,<ins>parents</ins>,<ins>category</ins>,<ins>start</ins>,<ins>end</ins>,<del>effort</del>,<del>ishabit</del>,<del>tags</del></emp>.
+    <div class="help-config-desc">
+      The first number before the <emp>x</emp> is the total number of days during the period between the starting and ending dates.
+      When the mouse is over, display the number of minutes per day that are counted twice.
+      Because the precision is to the minute, a task may end at the same minute another starts, effectively counting this minute twice.
       <br/>
-      All displayed data is wihtin the <b>starting date</b> and the <b>ending date</b>.
-    </p>
+      Every box represent a period of time during the day and its color indicates the amount of time spent in average during this period.
+      When the mouse is over a box, the exact duration is displayed as well as the average amount a time spent and the corresponding percentage.
+    </div>
   </div>
 
-  <hr/>
-
   <div id="help-headlines" class="help-block" >
-    <h2>Headlines</h2>
+    <h2><u>Headlines</u></h2>
     <hr/>
   </div>
 
   <div id="help-calendar" class="help-block" >
-    <h2>Calendar</h2>
+    <h2><u>Calendar</u></h2>
 
     <svg width="1124" height="200">
       <g transform="translate(50,40)">

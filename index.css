@@ -66,6 +66,17 @@ body[visibility=soft]
     cursor: default;
 }
 
+#config #misc #color
+{
+    text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
+    cursor: default;
+}
+
+#config #misc input[visibility=none]
+{
+    display: none;
+}
+
 #pace
 {
     cursor: text;

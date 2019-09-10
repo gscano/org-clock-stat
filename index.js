@@ -1,8 +1,17 @@
 window.onload = async function () {
 
     window.isLocal = window.location.href.startsWith('file:///');
-
     console.log(isLocal)
+
+    window.color = "green";
+
+    load('./license.html')
+	.then(content => {
+	    document.getElementById('license-content').innerHTML = content;
+	    document.getElementById('license').addEventListener('click', displayLicense);
+	    document.getElementById('license').removeAttribute("href");
+	})
+	.catch(reason => console.log(reason));
 
     load('./help.html')
 	.then(content => {
@@ -12,13 +21,9 @@ window.onload = async function () {
 	})
 	.catch(reason => console.log(reason));
 
-    load('./license.html')
-	.then(content => {
-	    document.getElementById('license-content').innerHTML = content;
-	    document.getElementById('license').addEventListener('click', displayLicense);
-	    document.getElementById('license').removeAttribute("href");
-	})
-	.catch(reason => console.log(reason));
+    document.getElementById('color').style.color = window.color;
+    document.getElementById('color').addEventListener('click', pickColor);
+    document.getElementById('color-picker').addEventListener("focusout", colorPicked);
 
     d3.select('#average-hours').selectAll('option').data(d3.range(0,24)).enter()
 	.append('option').attr("value", hour => hour).text(hour => displayTwoDigits(hour));
@@ -60,24 +65,13 @@ window.onload = async function () {
 							   evening: 17, eveningProbability: 0.1,
 							   weekendShift: 5});
 
-	var data = randomData(projects, "2016-01-01", "2019-08-31", activityRandomizer, 100);
+	var data = randomData(projects, "2019-01-01", "2019-08-31", activityRandomizer, 100);
 
 	if(false) { console.log(projects); console.log(data); }
 
 	readData(data.join('\n'));
     }
     /* DEMO AND TESTS ONLY */
-}
-
-function displayHelp() {
-    document.getElementById("help-container").setAttribute("visibility", "true");
-    document.getElementById("content").setAttribute("visibility", "hidden");
-    document.getElementById("help-close").addEventListener("click", hideHelp);
-}
-
-function hideHelp() {
-    document.getElementById("help-container").setAttribute("visibility", "false");
-    document.getElementById("content").removeAttribute("visibility");
 }
 
 function displayLicense() {
@@ -91,6 +85,45 @@ function hideLicense(event) {
 	document.getElementById("license-container").setAttribute("visibility", "false");
 	document.getElementsByTagName("body")[0].setAttribute("visibility", "hard");
 	window.onclick = null;
+    }
+}
+
+function displayHelp() {
+    document.getElementById("help-container").setAttribute("visibility", "true");
+    document.getElementById("content").setAttribute("visibility", "hidden");
+    document.getElementById("help-close").addEventListener("click", hideHelp);
+}
+
+function hideHelp() {
+    document.getElementById("help-container").setAttribute("visibility", "false");
+    document.getElementById("content").removeAttribute("visibility");
+}
+
+function pickColor() {
+    var picker = document.getElementById('color-picker');
+    picker.value = window.color;
+    picker.setAttribute("visibility", "visible");
+
+    document.getElementById("color").removeEventListener('click', pickColor);
+    document.getElementById("color").addEventListener('click', colorPicked);
+}
+
+function colorPicked(event) {
+    var picker = document.getElementById("color-picker");
+    var color = document.getElementById("color");
+
+    if(event.target == picker || event.target == color) {
+	picker.setAttribute("visibility", "none");
+
+	color.removeEventListener('click', colorPicked);
+	color.addEventListener('click', pickColor);
+	color.style.color = picker.value;
+	if(color.style.color == picker.value && window.color != picker.value) {
+	    window.color = picker.value;
+	    draw();
+	}
+	else
+	    color.style.color = window.color;
     }
 }
 
@@ -411,7 +444,8 @@ function draw(elements = ['day', 'headlines', 'calendar']) {
     if(elements.includes('day'))
 	drawDay(window.data.current.day, dayPace,
 		weekendsAsBonus ? window.data.current.daysCount.weekdays : window.data.current.daysCount.days,
-		window.data.current.totalTime);
+		window.data.current.totalTime,
+		window.color);
 
     if(elements.includes('headlines'))
 	drawHeadlines(window.data.current.filter, averagePerDay);
@@ -419,10 +453,11 @@ function draw(elements = ['day', 'headlines', 'calendar']) {
     if(elements.includes('calendar'))
 	drawCalendar(window.data.current.calendar, averagePerDay,
 		     displayWeekends, weekendsAsBonus,
-		     hasFirstGlanceWeekdays, hasFirstGlanceMonths, hasFirstGlanceYears);
+		     hasFirstGlanceWeekdays, hasFirstGlanceMonths, hasFirstGlanceYears,
+		    window.color);
 }
 
-function drawDay(data, step, numberOfDays, totalTime) {
+function drawDay(data, step, numberOfDays, totalTime, color) {
     document.getElementById('day').innerHTML = '';
 
     var sameMinuteDeviation = d3.sum(data) - totalTime;
@@ -433,28 +468,28 @@ function drawDay(data, step, numberOfDays, totalTime) {
 
     const interSize = 1;
 
-    const color = d3.scaleLinear().domain([0,step]).range(["white", "green"]);
+    const palette = d3.scaleLinear().domain([0,step]).range(["white", color]);
 
     const day = d3.select("div#day").append("svg");
 
-    day.attr('width', 100 + data.length * (cellSize + interSize))
+    day.attr('width', 120 + data.length * (cellSize + interSize))
 	.attr('height', 40 + cellSize)
 	.attr("transform", `translate(0,10)`);
 
     day.append("g")
-	.append("text").text(numberOfDays + " x")
-	.attr("transform", `translate(10,12.5)`)
+	.append("text").text(numberOfDays + " days")
+	.attr("transform", `translate(0,12.5)`)
 	.append("title")
 	.text("Minutes counted twice a day: " + Math.floor(sameMinuteDeviation / numberOfDays) + "  " + (100 * sameMinuteDeviation / totalTime).toFixed(2) + "%");
 
-    const shift = 50;
+    const shift = 70;
 
     day.append("g").selectAll("rect")
 	.data(data)
 	.join("rect")
 	.attr("width", cellSize).attr("height", cellSize)
 	.attr("transform", (_,i) => `translate(${shift + i * (cellSize + interSize) + 20}, 0)`)
-	.attr("fill", duration => color(Math.floor(duration/numberOfDays)))
+	.attr("fill", duration => palette(Math.floor(duration/numberOfDays)))
 	.append("title")
 	.text((duration,i) => displayMinutesAsHour(i * step) + "-"
 	      + displayMinutesAsHour(i == data.length - 1 ? 0 : (i + 1) * step) + " "
@@ -562,7 +597,8 @@ function drawBrowser(filter, averagePerDay) {
 
 function drawCalendar(data, averagePerDay,
 		      displayWeekends, weekendsAsBonus,
-		      hasFirstGlanceWeekdays, hasFirstGlanceMonths, hasFirstGlanceYears) {
+		      hasFirstGlanceWeekdays, hasFirstGlanceMonths, hasFirstGlanceYears,
+		      color) {
     document.getElementById('calendar').innerHTML = '';
 
     const weekdaysFormat = 'dddd';
@@ -581,7 +617,7 @@ function drawCalendar(data, averagePerDay,
     const sumDay = ({"date":date,"duration":duration}) => (displayWeekends || weekendsAsBonus) ? duration : (isWeekday(moment(date).isoWeekday()) ? duration : 0);
     const countDays = days => days.reduce((accu, day) => accu + dayFilter(moment(day.date).isoWeekday()), 0);
 
-    const color = d3.scaleLinear().domain([0,averagePerDay]).range(["white", "green"]);
+    const palette = d3.scaleLinear().domain([0,averagePerDay]).range(["white", color]);
 
     const meanPerDay = days => d3.sum(days, day => sumDay(day)) / countDays(days);
     const sigmForDay = days => d3.deviation(days, day => sumDay(day));
@@ -609,7 +645,7 @@ function drawCalendar(data, averagePerDay,
     if(hasFirstGlanceYears)
 	year_.append("ellipse").attr("cx", 20).attr("cy", -6).attr("ry", 8)
 	.attr("rx", ({values:days}) => ellipseRadix(days, 8, 16))
-	.attr("fill", ({values:days}) => color(meanPerDay(days)))
+	.attr("fill", ({values:days}) => palette(meanPerDay(days)))
 	.append("title").text(({values:values}) => displayDuration(Math.floor(d3.sum(values, ({duration:duration}) => duration) / values.length)));
 
     const weekday = year.append("g").attr("class", "calendar-weekday").attr("transform", `translate(-30,${textScale * cellSize})`);
@@ -625,7 +661,7 @@ function drawCalendar(data, averagePerDay,
     if(hasFirstGlanceWeekdays)
 	weekday_.append("ellipse").attr("cx", -10).attr("cy", -6).attr("ry", 4)
 	.attr("rx", ({values:days}) => ellipseRadix(days, 4, 8))
-	.attr("fill", ({values:days}) => color(meanPerDay(days)))
+	.attr("fill", ({values:days}) => palette(meanPerDay(days)))
 	.append("title").text(({values:values}) => displayDuration(Math.floor(d3.sum(values, ({duration:duration}) => duration) / values.length)));
 
     const month = year.append("g").attr("class", "calendar-month").attr("transform", "translate(70,0)");
@@ -640,7 +676,7 @@ function drawCalendar(data, averagePerDay,
     if(hasFirstGlanceMonths)
 	month_.append("ellipse").attr("cx", 45).attr("cy", -5).attr("ry", 5)
 	.attr("rx", ({values:days}) => ellipseRadix(days, 5, 10))
-	.attr("fill", ({values:days}) => color(meanPerDay(days)))
+	.attr("fill", ({values:days}) => palette(meanPerDay(days)))
 	.append("title").text(({values:values}) => displayLongDuration(Math.floor(d3.sum(values, ({duration:duration}) => duration) / values.length)));
 
     const days = year.append("g")
@@ -664,7 +700,7 @@ function drawCalendar(data, averagePerDay,
 	.join("rect")
 	.attr("width", cellSize).attr("height",  cellSize)
 	.attr("transform", ({"date":date}) => `translate(${dayGridX(date)},${dayGridY(date)})`)
-	.attr("fill", ({"duration":duration}) => color(duration))
+	.attr("fill", ({"duration":duration}) => palette(duration))
 	.append("title").text(({"date":date,"duration":duration}) => moment(date).format('YYYY-MM-DD') + " " + displayDuration(duration));
 }
 

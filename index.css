@@ -107,39 +107,7 @@ body[visibility=soft]
     float:left;
 }
 
-#tags li
-{
-    display: inline;
-    padding: 5px;
-    border-radius: 25px;
-    cursor: pointer;
-}
-
-#tags li[toggled=false]
-{
-    color: black;
-    background-color: #eeeeee;
-}
-
-#tags li[toggled=true]
-{
-    color: white;
-    background-color: black;
-}
-
-ul.tags
-{
-    display: inline;
-}
-
-ul.tags li
-{
-    display: inline;
-    border-radius: 25px;
-    padding: 5px;
-}
-
-#tags ul.tag li
+#tags g
 {
     cursor: pointer;
 }
@@ -149,28 +117,22 @@ ul.tags li
     width: 50%;
 }
 
-#browser li
-{
-    list-style-type: none;
-    margin-bottom: 12px;
-}
-
-.task
+.headline
 {
     cursor: pointer;
 }
 
-.task[is-habit=true]
+.headline[is-habit=true]
 {
     text-decoration: underline;
 }
 
-.task[is-selected=true]
+.headline[is-selected=true]
 {
     font-weight: bold;
 }
 
-.task[is-selected=false]
+.headline[is-selected=false]
 {
     font-weight: normal;
 }

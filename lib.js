@@ -1,3 +1,25 @@
+function flattenHeadlines(tasks, result = {desc: [], data: []}) {
+    return tasks.reduce(flattenHeadline, result);
+}
+
+function flattenHeadline({desc, data}, task) {
+
+    desc.push({id: task.id,
+	       parent: task.parentId,
+	       depth: task.depth,
+	       name: task.name,
+	       tags: task.hasOwnProperty('tags') ? task.tags : [],
+	       effort: task.effort,
+	       ishabit: task.ishabit
+	      });
+
+    data.push({parent: task.parentId,
+	       entries: task.entries
+	      });
+
+    return task.subtasks.reduce(flattenHeadline, {desc, data});
+}
+
 // [{id:Integer, substasks:[Self], entries:[[Date, Date]]}] => [{id:Integer, start:Date, end:Date}] => [{id:Integer, start:Date, end:Date}]
 function flattenTasks(tasks, result = []) {
     return tasks.reduce(flattenTask, result);
@@ -11,9 +33,7 @@ function flattenTask(result, task) {
 	return result;
     }, result);
 
-    task.subtasks.reduce(flattenTask, result);
-
-    return result;
+    return task.subtasks.reduce(flattenTask, result);
 }
 
 // Set(Integer) => Date => Date => Date => String[year month week isoWeek day] => ({id:Integer, start:Date, end:Date} => [{id:Integer, start:Date, end:Date}])

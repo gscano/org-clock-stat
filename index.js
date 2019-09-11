@@ -1,9 +1,7 @@
 window.onload = async function () {
 
-    window.isLocal = window.location.href.startsWith('file:///');
-    console.log(isLocal)
-
     window.color = "green";
+    window.defaultStep = 15;
 
     load('./license.html')
 	.then(content => {
@@ -34,7 +32,7 @@ window.onload = async function () {
     document.getElementById('average-minutes').value = "0";
     document.getElementById('average-minutes').addEventListener('change', drawOnAverageChange);
 
-    document.getElementById('day-pace').value = defaultStep;
+    document.getElementById('day-pace').value = window.defaultStep;
     document.getElementById('day-pace').addEventListener('change', drawOnDayPaceChange);
 
     document.getElementById('display-weekends').addEventListener('change', drawAll);
@@ -72,6 +70,9 @@ window.onload = async function () {
 	readData(data.join('\n'));
     }
     /* DEMO AND TESTS ONLY */
+
+    window.isLocal = window.location.href.startsWith('file:///');
+    console.log(isLocal)
 }
 
 function displayLicense() {
@@ -127,16 +128,14 @@ function colorPicked(event) {
     }
 }
 
-const defaultStep = 15;
-
 class Data {
     constructor() {
 	this.maxTaskId = 0;
-	this.headlines = 0;
 
 	this.firstDate = null;
 	this.lastDate = null;
 
+	this.headlines = {desc: [], data: []};
 	this.tasks = [];
 	this.flattenedTasks = [];
 	this.selectedTasks = new Set();
@@ -183,20 +182,32 @@ class Data {
 	this.tags.forEach(tag => this.tagsColor.set(tag, stringToColor(tag)));
     }
 
-    countHeadlines() {
-	function count(accu, task) {
-	    return task.subtasks.reduce(count, 1 + (task.headlines = accu));
-	}
-
-	return this.tasks.reduce(count, 0);
-    }
-
-    setID() {
-	function reduce(id, task) {
-	    return task.subtasks.reduce(reduce, (task.id = id) + 1);
-	}
+    setId() {
+	const reduce = (id, task) => task.subtasks.reduce(reduce, (task.id = id) + 1);
 
 	return this.tasks.reduce(reduce, 0);
+    }
+
+    setParent(task, parentId) {
+	var self = this;
+	task.parentId = parentId;
+	task.subtasks.forEach(subtask => self.setParent(subtask, task.id));
+    }
+
+    afterParse() {
+	this.maxTaskId = this.setId();
+	this.tasks.forEach(task => this.setParent(task, null));
+
+	flattenHeadlines(this.tasks, this.headlines);
+	this.flattenedTasks = flattenTasks(this.tasks);
+
+	this.firstDate = this.flattenedTasks.reduce((accu, {start:start}) => accu.isBefore(moment(start)) ? accu : moment(start), moment()).toDate();
+	this.lastDate = this.flattenedTasks.reduce((accu, {end:end}) => accu.isAfter(moment(end)) ? accu : moment(end), moment(0)).toDate();
+
+	this.collectTags();
+
+	this.flipTasks();
+	this.flipTags();
     }
 
     flipTasks() {
@@ -220,21 +231,6 @@ class Data {
 	this.tagsCount.set(tag, count);
     }
 
-    afterParse() {
-	this.headlines = this.countHeadlines();
-	this.maxTaskId = this.setID();
-
-	this.flattenedTasks = flattenTasks(this.tasks);
-
-	this.firstDate = this.flattenedTasks.reduce((accu, {start:start}) => accu.isBefore(moment(start)) ? accu : moment(start), moment()).toDate();
-	this.lastDate = this.flattenedTasks.reduce((accu, {end:end}) => accu.isAfter(moment(end)) ? accu : moment(end), moment(0)).toDate();
-
-	this.collectTags();
-
-	this.flipTasks();
-	this.flipTags();
-    }
-
     isTagSelected(tag) {
 	var count = this.tagsCount.get(tag);
 	return count.current == count.max;
@@ -256,17 +252,24 @@ class Data {
 
     getColorOfTag(tag) {
 	if(this.tagsColor.has(tag))
-	   return this.tagsColor.get(tag);
+	    return this.tagsColor.get(tag);
 	else
 	    return '#eeeeee';
     }
 
-    getColorOf(tag, force = false) {
-	return this.isTagSelected(tag) || force ? '#eeeeee' : this.getColorOfTag(tag);
+    getColorOf(tag) {
+	if(tag == null) {
+	    return this.isAnyTagSelected() ? 'black' : 'white';
+	}
+	else
+	    return this.isTagSelected(tag) ? '#eeeeee' : this.getColorOfTag(tag);
     }
 
-    getBackgroundColorOf(tag, force = false) {
-	return this.isTagSelected(tag) || force ? this.getColorOfTag(tag) : '#eeeeee';
+    getBackgroundColorOf(tag) {
+	if(tag == null) {
+	    return this.isAnyTagSelected() ? '#eeeeee' : 'black';
+	}
+	return this.isTagSelected(tag) ? this.getColorOfTag(tag) : '#eeeeee';
     }
 }
 
@@ -389,8 +392,8 @@ function drawOnDayPaceChange() {
     var dayPace = parseInt(document.getElementById('day-pace').value);
 
     if(dayPace <= 0 || 120 < dayPace) {
-	document.getElementById('day-pace').value = defaultStep;
-	dayPace = defaultStep;
+	document.getElementById('day-pace').value = window.defaultStep;
+	dayPace = window.defaultStep;
     }
 
     draw(['day']);
@@ -443,7 +446,7 @@ function draw(elements = ['day', 'headlines', 'calendar']) {
 	window.data.current.day = reduceInterval(window.data.current.tasks, dayPace);
     }
 
-    console.log(window.data);
+     console.log(window.data);
 
     drawSelection(window.data.current.totalTime, displayWeekends ? window.data.current.daysCount.days : window.data.current.daysCount.weekdays, averagePerDay, displayWeekends ? window.data.current.daysCount.days - window.data.current.daysCount.weekdays : 0);
 
@@ -460,7 +463,7 @@ function draw(elements = ['day', 'headlines', 'calendar']) {
 	drawCalendar(window.data.current.calendar, averagePerDay,
 		     displayWeekends, weekendsAsBonus,
 		     hasFirstGlanceWeekdays, hasFirstGlanceMonths, hasFirstGlanceYears,
-		    window.color);
+		     window.color);
 }
 
 function drawSelection(totalTime, days, averagePerDay, weekends) {
@@ -474,8 +477,8 @@ function drawDay(data, step, numberOfDays, totalTime, color) {
     var sameMinuteDeviation = d3.sum(data) - totalTime;
 
     var cellSize = 16;
-    if(step < defaultStep)
-	cellSize /= (defaultStep / step);
+    if(step < window.defaultStep)
+	cellSize /= (window.defaultStep / step);
 
     const interSize = 1;
 
@@ -531,76 +534,89 @@ function drawHeadlines(filter, averagePerDay) {
 function drawTags() {
     document.getElementById('tags').innerHTML = '';
 
-    d3.select('ul#tags').selectAll('ul')
-	.data(Array.from(window.data.tags).sort())
-	.enter()
-	.append('li')
-	.text(tag => tag)
-	.attr("is-selected", tag => window.data.isTagSelected(tag))
-	.style("color", tag => window.data.getColorOf(tag))
-	.style("background-color", tag => window.data.getBackgroundColorOf(tag))
-	.on("click", flipTag);
+    const xRadix = 15;
+    const yRadix = 12;
 
-    d3.select('ul#tags')
-	.insert("li", ":first-child")
-	.attr("toggled", !window.data.isAnyTagSelected())
-	.text("None")
-	.on("click", flipTags);
+    const characters = 4;//Cannot be less than 4 for 'None'
+
+    const width = 15 * characters;
+    const height = 30;
+
+    const svg = d3.select('svg#tags')
+	  .attr("width", 600).attr("height", height);
+
+    const tag = svg.selectAll("g")
+	  .data([null].concat(Array.from(window.data.tags).sort()))
+	  .join("g")
+	  .attr("transform", (_,i) => `translate(${i * width},0)`)
+	  .on("click", tag => tag == null ? flipTags : flipTag);
+
+    tag.append("rect")
+	.attr("width", width).attr("height", height)
+	.attr("rx", xRadix).attr("ry", yRadix)
+	.attr("fill", tag => window.data.getBackgroundColorOf(tag));
+
+    tag.append("text")
+	.attr("transform", `translate(${width / 2},20)`)
+	.text(tag => tag == null ? 'None' : tag.slice(0, characters))
+	.attr("text-anchor", "middle")
+	.attr("fill", tag => window.data.getColorOf(tag));
 }
 
 function drawBrowser(filter, averagePerDay) {
     document.getElementById('browser').innerHTML = '';
 
-    function recurse(ul) {
-	var li = ul.append('li');
+    const xShift = 20;
+    const yShift = 23;
+    const yOffset = 20;
 
-	li.append('span')
-	    .text(task => task.name)
-	    .attr("class", "task")
-	    .attr("task-id", task => task.id)
-	    .attr("is-selected", task => window.data.selectedTasks.has(task.id))
-	    .attr("is-habit", task => task.ishabit ? "true" : "false")
-	    .on("click", flipTask);
+    const svg = d3.select("svg#browser")
+	  .attr("width", 600).attr("height", window.data.headlines.desc.length * yShift)
 
-	li.append('span')
-	    .text(task => {
-		const flattened = flattenTask([], task);
-		const filtered = filterTasks(flattened, filter);
-		const reduced = reduceDuration(filtered);
-		return displayLongDuration(d3.sum(reduced, ({duration:duration}) => duration), averagePerDay);
-	    });
+    svg.selectAll('g')
+	.data(window.data.headlines.desc)
+	.join('g')
+	.attr("transform", ({depth, id}) => `translate(${depth * xShift},${yOffset + id * yShift})`)
 
-	li.filter(task => task.hasOwnProperty('tags') && 0 < task.tags.size)
-	    .append('ul').attr("class", "tags").selectAll('ul')
-	    .data(task => Array.from(task.tags).sort().map(tag => [window.data.selectedTasks.has(task.id), tag]))
-	    .enter()
-	    .append('li')
-	    .text(([_,tag]) => tag)
-	    .attr("is-selected", ([selected,tag]) => selected)
-	    .style("color", ([selected,tag]) => window.data.getColorOf(tag, selected))
-	    .style("background-color", ([selected,tag]) => window.data.getBackgroundColorOf(tag, selected));
+	.append('text')
+	.text(({name}) => name)
+	.attr("class", "headline")
+	.attr("headline-id", ({id}) => id)
+	.attr("is-selected", ({id}) => window.data.selectedTasks.has(id))
+	.attr("is-habit", ({ishabit}) => ishabit ? "true" : "false")
+	.on("click", flipTask)
 
-	if(!li.empty()) {
-	    ul = li.filter(task => 0 < task.subtasks.length)
-		.append('ul').selectAll('ul')
-		.data(task => task.subtasks, _ => _)
-		.enter();
+    // .append('span')
+    // .text(task => {
+    //     const flattened = flattenTask([], task);
+    //     const filtered = filterTasks(flattened, filter);
+    //     const reduced = reduceDuration(filtered);
+    //     return displayLongDuration(d3.sum(reduced, ({duration:duration}) => duration), averagePerDay);
+    // })
 
-	    recurse(ul);
-	}
-    }
+    // .filter(task => task.hasOwnProperty('tags') && 0 < task.tags.size)
+    // .append('ul').attr("class", "tags").selectAll('ul')
+    // .data(task => Array.from(task.tags).sort().map(tag => [window.data.selectedTasks.has(task.id), tag]))
+    // .enter()
+    // .append('li')
+    // .text(([_,tag]) => tag)
+    // .attr("is-selected", ([selected,tag]) => selected)
+    // .style("color", ([selected,tag]) => window.data.getColorOf(tag, selected))
+    // .style("background-color", ([selected,tag]) => window.data.getBackgroundColorOf(tag, selected));
 
-    d3.select("#browser").selectAll('ul')
-	.data(window.data.tasks)
-	.enter()
-	.call(recurse);
+    // d3.select("#browser")
+    //.insert("li", ":first-child")
+    //.text("None")
+    //.attr("class", "task")
+    //.attr("is-selected", window.data.selectedTasks.size == 0)
+    //.on("click", flipTasks);
 
-    d3.select("#browser")
-	.insert("li", ":first-child")
-	.text("None")
-	.attr("class", "task")
-	.attr("is-selected", window.data.selectedTasks.size == 0)
-	.on("click", flipTasks);
+    // d3.select("#browser")
+    //	.insert("li", ":first-child")
+    //	.text("None")
+    //	.attr("class", "task")
+    //	.attr("is-selected", window.data.selectedTasks.size == 0)
+    //	.on("click", flipTasks);
 }
 
 function drawCalendar(data, averagePerDay,

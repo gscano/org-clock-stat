@@ -4,40 +4,29 @@ function flattenHeadlines(tasks, result = {desc: [], data: []}) {
 
 function flattenHeadline({desc, data}, task) {
 
-    desc.push({id: task.id,
-	       parent: task.parentId,
-	       depth: task.depth,
-	       name: task.name,
-	       tags: task.hasOwnProperty('tags') ? task.tags : [],
-	       effort: task.effort,
-	       ishabit: task.ishabit
-	      });
+    desc.push({ id: task.id,
+		parent: task.parentId,
+		depth: task.depth,
+		name: task.name,
+		tags: task.hasOwnProperty('tags') ? task.tags : [],
+		effort: task.effort,
+		ishabit: task.ishabit });
 
-    data.push({parent: task.parentId,
-	       entries: task.entries
-	      });
+    data.push({ parent: task.parentId,
+		entries: task.entries });
 
     return task.subtasks.reduce(flattenHeadline, {desc, data});
 }
 
-// [{id:Integer, substasks:[Self], entries:[[Date, Date]]}] => [{id:Integer, start:Date, end:Date}] => [{id:Integer, start:Date, end:Date}]
-function flattenTasks(tasks, result = []) {
-    return tasks.reduce(flattenTask, result);
+// Set(Int) => (Int => Bool)
+function createHeadlineFilter(ids) {
+    return function(id) {
+	return ids.has(id);
+    }
 }
 
-// [[Date, Date]] => {substasks:[Self], entries:[[Date, Date]]} => [{id:Integer, start:Date, end:Date}]
-function flattenTask(result, task) {
-
-    task.entries.reduce((result, entry) => {
-	result.push({id: task.id, start: entry.start, end: entry.end});
-	return result;
-    }, result);
-
-    return task.subtasks.reduce(flattenTask, result);
-}
-
-// Set(Integer) => Date => Date => Date => String[year month week isoWeek day] => ({id:Integer, start:Date, end:Date} => [{id:Integer, start:Date, end:Date}])
-function createSplittingFilter(ids, from, to, specific = null, moment_ = 'date') {
+// Date => Date => Date => String[year month week isoWeek day] => ({start:Date, end:Date} => [{start:Date, end:Date}])
+function createSplittingFilter(from, to, specific = null, moment_ = 'date') {
     from = moment(from);
     to = moment(to);
     specific = specific == null ? null : moment(specific);
@@ -46,37 +35,38 @@ function createSplittingFilter(ids, from, to, specific = null, moment_ = 'date')
 
     const format = 'YYYY-MM-DD HH:mm';
 
-    // {id:Integer, start:Date, end:Date} => [{id:Integer, start:Date, end:Date}]
-    return function (data) {
+    // {start:Date, end:Date} => [{start:Date, end:Date}]
+    return function ({start, end}) {
 	var result = [];
 
-	if(ids.has(data.id)) {
-	    var start = moment(data.start);
-	    var end = moment(data.end);
+	start = moment(start);
+	end = moment(end);
 
-	    if(start.isAfter(to) || end.isBefore(from)) return result;
+	if(start.isAfter(to) || end.isBefore(from)) return result;
 
-	    start = moment.max(start, from);
-	    end = moment.min(end, to);
+	result.push({start,end});
 
-	    var current = moment.min(start.clone().add(1, 'days').startOf('day'), end);
+	return result;
 
-	    if(specific == null || (specific != null && start.isSame(specific, moment_)))
-		result.push({id: data.id, start: start.format(format), end: current.format(format)});
+	start = moment.max(start, from);
+	end = moment.min(end, to);
 
-	    while(!current.isSame(end, 'day')) {
-		if(specific == null || (specific != null && current.isSame(specific, moment_)))
-		    result.push({id: data.id,
-				 start: current.format(format),
-				 end: current.add(1, 'days').format(format)});
-		else
-		    current.add(1, 'days');
-	    }
+	var current = moment.min(start.clone().add(1, 'days').startOf('day'), end);
 
-	    if(!current.isSame(end)
-	       && specific == null || (specific != null && end.isSame(specific, moment_)))
-		result.push({id: data.id, start: current.format(format), end: end.format(format)});
+	if(specific == null || (specific != null && start.isSame(specific, moment_)))
+	    result.push({start: start.format(format), end: current.format(format)});
+
+	while(!current.isSame(end, 'day')) {
+	    if(specific == null || (specific != null && current.isSame(specific, moment_)))
+		result.push({start: current.format(format),
+			     end: current.add(1, 'days').format(format)});
+	    else
+		current.add(1, 'days');
 	}
+
+	if(!current.isSame(end)
+	   && specific == null || (specific != null && end.isSame(specific, moment_)))
+	    result.push({start: current.format(format), end: end.format(format)});
 
 	return result;
     }
@@ -109,8 +99,8 @@ function extractDaysDuration(start_, end_) {
     return result;
 }
 
-// [{start:Date, end:Date}] => {date:Date, duration:Int}
-function reduceDuration(clocks) {
+// [{start:Date, end:Date}] => Map(Date => Int)
+function reduceDuration(entries, result = new Map()) {
 
     function reduce(result, {start: start, end: end}) {
 
@@ -129,8 +119,21 @@ function reduceDuration(clocks) {
 	return extractDaysDuration(start, end).reduce(reduce, result);
     }
 
-    return Array.from(clocks.reduce(reduce, new Map()))
-	.map(([date,duration]) => ({date: new Date(date), duration: duration}));
+    return entries.reduce(reduce, result);
+}
+
+// => [{date: Date, duration: Int}]
+function computeCalendarDurations(headlines, ids, filter) {
+
+    var map = headlines.reduce((days, {entries}, id) =>
+			       ids.has(id)
+			       ?
+			       entries.reduce((days, entry) => reduceDuration(filter(entry), days),
+					      days)
+			       : days,
+			       new Map());
+
+    return Array.from(map).map(([date, duration]) => ({date: new Date(date), duration: duration}));
 }
 
 // Date => Date => Integer => [Integer]
@@ -175,10 +178,25 @@ function extractDaysInterval(start_, end_, minutes, result) {
 }
 
 // [{start:Date,end:Date}] => [Integer]
-function reduceInterval(clocks, minutes = 15) {
-    return clocks.reduce((result, {start: start, end: end}) =>
-			 extractDaysInterval(start, end, minutes, result),
-			 Array(Math.ceil(24 * 60 / minutes)).fill(0));
+function reduceInterval(entries, minutes, result = Array(Math.ceil(24 * 60 / minutes)).fill(0)) {
+    return entries.reduce((result, {start: start, end: end}) =>
+			  extractDaysInterval(start, end, minutes, result),
+			  result);
+}
+
+function computeDayDurations(headlines, pace, ids, filter) {
+
+    return headlines.reduce((intervals,{entries},id) =>
+			    ids.has(id)
+			    ?
+			    entries.reduce((intervals, entry) => reduceInterval(filter(entry), pace, intervals),
+					   intervals)
+			    : intervals,
+			    Array(Math.ceil(24 * 60 / pace)).fill(0));
+}
+
+function computeHeadlinesDurations(headlines, ids, filter) {
+
 }
 
 // [{date:Date}] => {'days':Integer,'weekdays':Integer}

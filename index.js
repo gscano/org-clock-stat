@@ -71,6 +71,7 @@ window.onload = async function () {
     }
     /* DEMO AND TESTS ONLY */
 
+    //TODO Workers
     window.isLocal = window.location.href.startsWith('file:///');
     console.log(isLocal)
 }
@@ -130,15 +131,15 @@ function colorPicked(event) {
 
 class Data {
     constructor() {
-	this.maxTaskId = 0;
+	this.maxHeadlineId = 0;
+
+	this.headlines = {desc: [], data: []};
+	this.tasks = [];
 
 	this.firstDate = null;
 	this.lastDate = null;
 
-	this.headlines = {desc: [], data: []};
-	this.tasks = [];
-	this.flattenedTasks = [];
-	this.selectedTasks = new Set();
+	this.selectedHeadlines = new Set();
 
 	this.tags = new Set();
 	this.tagsCount = new Map();
@@ -146,7 +147,6 @@ class Data {
 
 	this.current = {
 	    filter: null,
-	    tasks:  [],
 	    day: [],
 	    calendar: [],
 	    totalTime: 0,
@@ -165,7 +165,7 @@ class Data {
 		    else
 			count = count.max;
 
-		    tags.set(tag, {"current": 0, "max": count + 1});
+		    tags.set(tag, {current: 0, max: count + 1});
 
 		    return tags;
 		}
@@ -195,27 +195,26 @@ class Data {
     }
 
     afterParse() {
-	this.maxTaskId = this.setId();
+	this.maxHeadlineId = this.setId();
 	this.tasks.forEach(task => this.setParent(task, null));
 
-	flattenHeadlines(this.tasks, this.headlines);
-	this.flattenedTasks = flattenTasks(this.tasks);
-
-	this.firstDate = this.flattenedTasks.reduce((accu, {start:start}) => accu.isBefore(moment(start)) ? accu : moment(start), moment()).toDate();
-	this.lastDate = this.flattenedTasks.reduce((accu, {end:end}) => accu.isAfter(moment(end)) ? accu : moment(end), moment(0)).toDate();
-
 	this.collectTags();
+
+	this.headlines = flattenHeadlines(this.tasks, this.headlines);
+
+	this.firstDate = this.headlines.data.reduce((first, {entries}) => entries.reduce((first, {start}) => first.isBefore(moment(start)) ? first : moment(start), first), moment()).toDate();
+	this.lastDate = this.headlines.data.reduce((last, {entries}) => entries.reduce((last, {end}) => last.isAfter(moment(end)) ? last : moment(end), last), moment(0)).toDate();
 
 	this.flipTasks();
 	this.flipTags();
     }
 
     flipTasks() {
-	var fill = this.selectedTasks.size == 0;
+	var fill = this.selectedHeadlines.size == 0;
 	if(fill)
-	    d3.range(0, this.maxTaskId + 1).forEach(task_id => this.selectedTasks.add(task_id));
+	    d3.range(0, this.maxHeadlineId + 1).forEach(task_id => this.selectedHeadlines.add(task_id));
 	else
-	    this.selectedTasks.clear();
+	    this.selectedHeadlines.clear();
 	return fill;
     }
 
@@ -287,7 +286,7 @@ function readData(input) {
 
     window.data = new Data();
 
-    d3.csvParse(input, parse, 2);
+    console.log(d3.csvParse(input, parse));
 
     window.data.afterParse();
 
@@ -431,22 +430,20 @@ function draw(elements = ['day', 'headlines', 'calendar']) {
     var startingDate = window.startingDatePicker.getMoment().format('YYYY-MM-DD');
     var endingDate = window.endingDatePicker.getMoment().format('YYYY-MM-DD');
 
-    window.data.current.filter = createSplittingFilter(window.data.selectedTasks,
-						       startingDate, endingDate);
-    window.data.current.tasks = filterTasks(window.data.flattenedTasks, window.data.current.filter);
+    window.data.current.filter = createSplittingFilter(startingDate, endingDate);
 
     if(elements.includes('calendar')) {
-	window.data.current.calendar = reduceDuration(window.data.current.tasks);
+	window.data.current.calendar = computeCalendarDurations(window.data.headlines.data, window.data.selectedHeadlines, window.data.current.filter);
 
 	window.data.current.totalTime = d3.sum(window.data.current.calendar, day => day.duration);
 	window.data.current.daysCount = extractDaysInfo(window.data.current.calendar);
     }
 
     if(elements.includes('day')) {
-	window.data.current.day = reduceInterval(window.data.current.tasks, dayPace);
+	window.data.current.day = computeDayDurations(window.data.headlines.data, dayPace, window.data.selectedHeadlines, window.data.current.filter);
     }
 
-     console.log(window.data);
+    console.log(window.data);
 
     drawSelection(window.data.current.totalTime, displayWeekends ? window.data.current.daysCount.days : window.data.current.daysCount.weekdays, averagePerDay, displayWeekends ? window.data.current.daysCount.days - window.data.current.daysCount.weekdays : 0);
 
@@ -582,7 +579,7 @@ function drawBrowser(filter, averagePerDay) {
 	.text(({name}) => name)
 	.attr("class", "headline")
 	.attr("headline-id", ({id}) => id)
-	.attr("is-selected", ({id}) => window.data.selectedTasks.has(id))
+	.attr("is-selected", ({id}) => window.data.selectedHeadlines.has(id))
 	.attr("is-habit", ({ishabit}) => ishabit ? "true" : "false")
 	.on("click", flipTask)
 
@@ -596,7 +593,7 @@ function drawBrowser(filter, averagePerDay) {
 
     // .filter(task => task.hasOwnProperty('tags') && 0 < task.tags.size)
     // .append('ul').attr("class", "tags").selectAll('ul')
-    // .data(task => Array.from(task.tags).sort().map(tag => [window.data.selectedTasks.has(task.id), tag]))
+    // .data(task => Array.from(task.tags).sort().map(tag => [window.data.selectedHeadlines.has(task.id), tag]))
     // .enter()
     // .append('li')
     // .text(([_,tag]) => tag)
@@ -608,14 +605,14 @@ function drawBrowser(filter, averagePerDay) {
     //.insert("li", ":first-child")
     //.text("None")
     //.attr("class", "task")
-    //.attr("is-selected", window.data.selectedTasks.size == 0)
+    //.attr("is-selected", window.data.selectedHeadlines.size == 0)
     //.on("click", flipTasks);
 
     // d3.select("#browser")
     //	.insert("li", ":first-child")
     //	.text("None")
     //	.attr("class", "task")
-    //	.attr("is-selected", window.data.selectedTasks.size == 0)
+    //	.attr("is-selected", window.data.selectedHeadlines.size == 0)
     //	.on("click", flipTasks);
 }
 
@@ -729,21 +726,21 @@ function drawCalendar(data, averagePerDay,
 }
 
 function selectAllSubTasks(task) {
-    window.data.selectedTasks.add(task.id);
+    window.data.selectedHeadlines.add(task.id);
     if(task.hasOwnProperty('tags'))
 	task.tags.forEach(tag => window.data.toggleTag(tag, true));
     task.subtasks.forEach(subtask => selectAllSubTasks(subtask));
 }
 
 function unselectAllSubTasks(task) {
-    window.data.selectedTasks.delete(task.id);
+    window.data.selectedHeadlines.delete(task.id);
     if(task.hasOwnProperty('tags'))
 	task.tags.forEach(tag => window.data.toggleTag(tag, false));
     task.subtasks.forEach(subtask => unselectAllSubTasks(subtask));
 }
 
 function flipTask(task) {
-    if(window.data.selectedTasks.has(task.id))
+    if(window.data.selectedHeadlines.has(task.id))
 	unselectAllSubTasks(task);
     else
 	selectAllSubTasks(task);
@@ -766,11 +763,11 @@ function forAllTasksWithTagDo(task, tag, action) {
 }
 
 function selectAllTasksWithTag(task, tag) {
-    return forAllTasksWithTagDo(task, tag, task_id => window.data.selectedTasks.add(task_id));
+    return forAllTasksWithTagDo(task, tag, task_id => window.data.selectedHeadlines.add(task_id));
 }
 
 function unselectAllTasksWithTag(task, tag) {
-    return forAllTasksWithTagDo(task, tag, task_id => window.data.selectedTasks.delete(task_id));
+    return forAllTasksWithTagDo(task, tag, task_id => window.data.selectedHeadlines.delete(task_id));
 }
 
 function flipTag(tag) {
@@ -794,9 +791,9 @@ function forAllTasksWithATagDo(task, action) {
 
 function flipTags() {
     if(window.data.flipTags())
-	window.data.tasks.forEach(task => forAllTasksWithATagDo(task, task_id => window.data.selectedTasks.delete(task_id)));
+	window.data.tasks.forEach(task => forAllTasksWithATagDo(task, task_id => window.data.selectedHeadlines.delete(task_id)));
     else
-	window.data.tasks.forEach(task => forAllTasksWithATagDo(task, task_id => window.data.selectedTasks.add(task_id)));
+	window.data.tasks.forEach(task => forAllTasksWithATagDo(task, task_id => window.data.selectedHeadlines.add(task_id)));
 
     draw();
 }

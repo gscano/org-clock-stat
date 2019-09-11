@@ -15,7 +15,7 @@ function flattenHeadline({desc, data}, task) {
     data.push({ parent: task.parentId,
 		entries: task.entries });
 
-    return task.subtasks.reduce(flattenHeadline, {desc, data});
+    return task.subentries.reduce(flattenHeadline, {desc, data});
 }
 
 // Set(Int) => (Int => Bool)

@@ -72,8 +72,8 @@ window.onload = async function () {
     /* DEMO AND TESTS ONLY */
 
     //TODO Workers
-    window.isLocal = window.location.href.startsWith('file:///');
-    console.log(isLocal)
+    //window.isLocal = window.location.href.startsWith('file:///');
+    //console.log(isLocal)
 }
 
 function displayLicense() {
@@ -130,20 +130,25 @@ function colorPicked(event) {
 }
 
 class Data {
-    constructor() {
-	this.maxHeadlineId = 0;
+    constructor(entries) {
+	this.maxHeadlineId = this.setId(entries);
+	entries.forEach(entry => this.setParent(entry, null));
 
-	this.headlines = {desc: [], data: []};
-	this.tasks = [];
+	this.tagsCount = this.collectTags(entries);
+	this.tags = Array.from(this.tagsCount).sort((lhs,rhs) => lhs[0] > rhs[0]).reduce((tags, [tag,_]) => tags.add(tag), new Set());
+	this.tagsColor = Array.from(this.tags).reduce((colors, tag) => colors.set(tag, stringToColor(tag)), new Map());
 
-	this.firstDate = null;
-	this.lastDate = null;
+	this.headlines = flattenHeadlines(entries);
+
+	([this.firstDate, this.lastDate] =
+	 this.headlines.data.reduce(([first, last], {entries}) =>
+				    entries.reduce(([first, last], {start, end}) => [first.isBefore(moment(start)) ? first : moment(start),
+										     last.isAfter(moment(end)) ? last : moment(end)],
+						   [first, last]),
+				    [moment(), moment(0)])
+	 .map(moment => moment.toDate()));
 
 	this.selectedHeadlines = new Set();
-
-	this.tags = new Set();
-	this.tagsCount = new Map();
-	this.tagsColor = new Map();
 
 	this.current = {
 	    filter: null,
@@ -152,12 +157,26 @@ class Data {
 	    totalTime: 0,
 	    daysCount: {days:0, weekdays: 0}
 	}
+
+	this.selectAll();
     }
 
-    collectTags() {
-	function exploreTasksForTags(map, task) {
-	    if(task.hasOwnProperty('tags')) {
-		function exploreTags(tags, tag) {
+    setId(entries) {
+	const reduce = (id, entry) => entry.subentries.reduce(reduce, (entry.id = id) + 1);
+
+	return entries.reduce(reduce, 0);
+    }
+
+    setParent(entry, parentId) {
+	var self = this;
+	entry.parentId = parentId;
+	entry.subentries.forEach(subentry => self.setParent(subentry, entry.id));
+    }
+
+    collectTags(entries) {
+	function searchTags(map, entry) {
+	    if(entry.hasOwnProperty('tags')) {
+		function countTags(tags, tag) {
 		    var count = tags.get(tag);
 
 		    if(count === undefined)
@@ -170,41 +189,16 @@ class Data {
 		    return tags;
 		}
 
-		Array.from(task.tags).reduce(exploreTags, map);
+		Array.from(entry.tags).reduce(countTags, map);
 	    }
 
-	    return task.subtasks.reduce(exploreTasksForTags, map);
+	    return entry.subentries.reduce(searchTags, map);
 	}
 
-	this.tasks.reduce(exploreTasksForTags, this.tagsCount);
-
-	Array.from(this.tagsCount).sort((lhs,rhs) => lhs[0] > rhs[0]).forEach(([tag,_]) => this.tags.add(tag));
-	this.tags.forEach(tag => this.tagsColor.set(tag, stringToColor(tag)));
+	return entries.reduce(searchTags, new Map());
     }
 
-    setId() {
-	const reduce = (id, task) => task.subtasks.reduce(reduce, (task.id = id) + 1);
-
-	return this.tasks.reduce(reduce, 0);
-    }
-
-    setParent(task, parentId) {
-	var self = this;
-	task.parentId = parentId;
-	task.subtasks.forEach(subtask => self.setParent(subtask, task.id));
-    }
-
-    afterParse() {
-	this.maxHeadlineId = this.setId();
-	this.tasks.forEach(task => this.setParent(task, null));
-
-	this.collectTags();
-
-	this.headlines = flattenHeadlines(this.tasks, this.headlines);
-
-	this.firstDate = this.headlines.data.reduce((first, {entries}) => entries.reduce((first, {start}) => first.isBefore(moment(start)) ? first : moment(start), first), moment()).toDate();
-	this.lastDate = this.headlines.data.reduce((last, {entries}) => entries.reduce((last, {end}) => last.isAfter(moment(end)) ? last : moment(end), last), moment(0)).toDate();
-
+    selectAll() {
 	this.flipTasks();
 	this.flipTags();
     }
@@ -280,15 +274,14 @@ function readFile(event) {
 }
 
 function readData(input) {
-
+    // Prevent the 'setDate' from triggering a 'select' when reloading a file
     window.startingDatePicker.config({ onSelect: null });
     window.endingDatePicker.config({ onSelect: null });
 
-    window.data = new Data();
+    parse.entries = [];
+    d3.csvParse(input, parse);
 
-    console.log(d3.csvParse(input, parse));
-
-    window.data.afterParse();
+    window.data = new Data(parse.entries);
 
     window.startingDatePicker.setDate(window.data.firstDate);
     window.endingDatePicker.setDate(window.data.lastDate);
@@ -340,47 +333,47 @@ function parse(data) {
 	.concat(data.parents.split('/').filter(value => 0 < value.length))
 	.concat(new Array(data.task));
 
-    var tasks = window.data.tasks;
-    var task;
+    var entries = parse.entries;
+    var entry;
 
     for(let i = 0; i < parents.length; i++) {
 	var parent = parents[i];
 
-	task = tasks.find(element => element.name == parent);
+	entry = entries.find(element => element.name == parent);
 
-	if(task === undefined) {
-	    tasks.push({name: parent, depth: i, subtasks: [], entries: []});
+	if(entry === undefined) {
+	    entries.push({name: parent, depth: i, subentries: [], entries: []});
 
-	    tasks.sort((a,b) => a.hasOwnProperty('name') && b.hasOwnProperty('name') ? a.name.localeCompare(b.name) : true);
+	    entries.sort((a,b) => a.hasOwnProperty('name') && b.hasOwnProperty('name') ? a.name.localeCompare(b.name) : true);
 
-	    task = tasks.find(element => element.name == parent);
+	    entry = entries.find(element => element.name == parent);
 	}
 
 	if(i + 1 < parents.length)
-	    tasks = task.subtasks;
+	    entries = entry.subentries;
     }
 
     data.tags = new Set(data.tags.split(':').filter(tag => 0 < tag.length));
     if(data.hasOwnProperty('tags')) {
-	if(!task.hasOwnProperty('tags'))
-	    task.tags = data.tags;
+	if(!entry.hasOwnProperty('tags'))
+	    entry.tags = data.tags;
 	else
-	    data.tags.forEach(tag => task.tags.add(tag));
+	    data.tags.forEach(tag => entry.tags.add(tag));
     }
 
-    if(!task.hasOwnProperty('effort') && data.hasOwnProperty('effort'))
-	task.effort = data.effort;
+    if(!entry.hasOwnProperty('effort') && data.hasOwnProperty('effort'))
+	entry.effort = data.effort;
 
-    if(!task.hasOwnProperty('ishabit') && data.hasOwnProperty('ishabit'))
-	task.ishabit = data.ishabit;
+    if(!entry.hasOwnProperty('ishabit') && data.hasOwnProperty('ishabit'))
+	entry.ishabit = data.ishabit;
 
     const start = new Date(data.start);
     const end = new Date(data.end);
 
     if(!moment(start).isBefore(end))
-	alert("Not adding '" + task.name + "'[" + start + " => " + end + "].");
+	alert("Not adding '" + entry.name + "'[" + start + " => " + end + "].");
 
-    task.entries.push({start:start, end:end});
+    entry.entries.push({start:start, end:end});
 }
 
 function drawOnAverageChange() {
@@ -729,14 +722,14 @@ function selectAllSubTasks(task) {
     window.data.selectedHeadlines.add(task.id);
     if(task.hasOwnProperty('tags'))
 	task.tags.forEach(tag => window.data.toggleTag(tag, true));
-    task.subtasks.forEach(subtask => selectAllSubTasks(subtask));
+    task.subentries.forEach(subtask => selectAllSubTasks(subtask));
 }
 
 function unselectAllSubTasks(task) {
     window.data.selectedHeadlines.delete(task.id);
     if(task.hasOwnProperty('tags'))
 	task.tags.forEach(tag => window.data.toggleTag(tag, false));
-    task.subtasks.forEach(subtask => unselectAllSubTasks(subtask));
+    task.subentries.forEach(subtask => unselectAllSubTasks(subtask));
 }
 
 function flipTask(task) {
@@ -759,7 +752,7 @@ function forAllTasksWithTagDo(task, tag, action) {
     if(task.hasOwnProperty('tags')
        && task.tags.has(tag))
 	action(task.id);
-    task.subtasks.forEach(task => forAllTasksWithTagDo(task, tag, action));
+    task.subentries.forEach(task => forAllTasksWithTagDo(task, tag, action));
 }
 
 function selectAllTasksWithTag(task, tag) {
@@ -786,7 +779,7 @@ function flipTag(tag) {
 function forAllTasksWithATagDo(task, action) {
     if(task.hasOwnProperty('tags') && 0 < task.tags.size)
 	action(task.id);
-    task.subtasks.forEach(task => forAllTasksWithATagDo(task, action));
+    task.subentries.forEach(task => forAllTasksWithATagDo(task, action));
 }
 
 function flipTags() {

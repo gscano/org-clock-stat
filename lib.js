@@ -7,8 +7,9 @@ function flattenHeadline({desc, data}, task) {
     desc.push({ id: task.id,
 		parent: task.parentId,
 		depth: task.depth,
+		children: [],
 		name: task.name,
-		tags: task.hasOwnProperty('tags') ? task.tags : [],
+		tags: task.hasOwnProperty('tags') ? task.tags : new Set(),
 		effort: task.effort,
 		ishabit: task.ishabit });
 

@@ -140,6 +140,8 @@ class Data {
 
 	this.headlines = flattenHeadlines(entries);
 
+	this.headlines.desc.forEach((headline,id) => {if(headline.parent != null) this.headlines.desc[headline.parent].children.push(id)});
+
 	([this.firstDate, this.lastDate] =
 	 this.headlines.data.reduce(([first, last], {entries}) =>
 				    entries.reduce(([first, last], {start, end}) => [first.isBefore(moment(start)) ? first : moment(start),
@@ -159,6 +161,8 @@ class Data {
 	}
 
 	this.selectAll();
+
+	console.log(this);
     }
 
     setId(entries) {
@@ -199,11 +203,11 @@ class Data {
     }
 
     selectAll() {
-	this.flipTasks();
+	this.flipHeadlines();
 	this.flipTags();
     }
 
-    flipTasks() {
+    flipHeadlines() {
 	var fill = this.selectedHeadlines.size == 0;
 	if(fill)
 	    d3.range(0, this.maxHeadlineId + 1).forEach(task_id => this.selectedHeadlines.add(task_id));
@@ -353,8 +357,9 @@ function parse(data) {
 	    entries = entry.subentries;
     }
 
-    data.tags = new Set(data.tags.split(':').filter(tag => 0 < tag.length));
     if(data.hasOwnProperty('tags')) {
+	data.tags = new Set(data.tags.split(':').filter(tag => 0 < tag.length));
+
 	if(!entry.hasOwnProperty('tags'))
 	    entry.tags = data.tags;
 	else
@@ -436,7 +441,7 @@ function draw(elements = ['day', 'headlines', 'calendar']) {
 	window.data.current.day = computeDayDurations(window.data.headlines.data, dayPace, window.data.selectedHeadlines, window.data.current.filter);
     }
 
-    console.log(window.data);
+    console.log(window.data.current);
 
     drawSelection(window.data.current.totalTime, displayWeekends ? window.data.current.daysCount.days : window.data.current.daysCount.weekdays, averagePerDay, displayWeekends ? window.data.current.daysCount.days - window.data.current.daysCount.weekdays : 0);
 
@@ -536,10 +541,10 @@ function drawTags() {
 	  .attr("width", 600).attr("height", height);
 
     const tag = svg.selectAll("g")
-	  .data([null].concat(Array.from(window.data.tags).sort()))
+	  .data([null].concat(Array.from(window.data.tags).sort((lhs,rhs) => lhs[0] > rhs[0])))
 	  .join("g")
 	  .attr("transform", (_,i) => `translate(${i * width},0)`)
-	  .on("click", tag => tag == null ? flipTags : flipTag);
+	  .on("click", tag => tag == null ? flipTags() : flipTag(tag));
 
     tag.append("rect")
 	.attr("width", width).attr("height", height)
@@ -574,7 +579,7 @@ function drawBrowser(filter, averagePerDay) {
 	.attr("headline-id", ({id}) => id)
 	.attr("is-selected", ({id}) => window.data.selectedHeadlines.has(id))
 	.attr("is-habit", ({ishabit}) => ishabit ? "true" : "false")
-	.on("click", flipTask)
+	.on("click", flipHeadline)
 
     // .append('span')
     // .text(task => {
@@ -599,14 +604,14 @@ function drawBrowser(filter, averagePerDay) {
     //.text("None")
     //.attr("class", "task")
     //.attr("is-selected", window.data.selectedHeadlines.size == 0)
-    //.on("click", flipTasks);
+    //.on("click", flipHeadlines);
 
     // d3.select("#browser")
     //	.insert("li", ":first-child")
     //	.text("None")
     //	.attr("class", "task")
     //	.attr("is-selected", window.data.selectedHeadlines.size == 0)
-    //	.on("click", flipTasks);
+    //	.on("click", flipHeadlines);
 }
 
 function drawCalendar(data, averagePerDay,
@@ -718,75 +723,60 @@ function drawCalendar(data, averagePerDay,
 	.append("title").text(({"date":date,"duration":duration}) => moment(date).format('YYYY-MM-DD') + " " + displayDuration(duration));
 }
 
-function selectAllSubTasks(task) {
-    window.data.selectedHeadlines.add(task.id);
-    if(task.hasOwnProperty('tags'))
-	task.tags.forEach(tag => window.data.toggleTag(tag, true));
-    task.subentries.forEach(subtask => selectAllSubTasks(subtask));
+function selectHeadline(headline) {
+    window.data.selectedHeadlines.add(headline.id);
+    headline.tags.forEach(tag => window.data.toggleTag(tag, true));
+    headline.children.forEach(id => selectHeadline(window.data.headlines.desc[id]));
 }
 
-function unselectAllSubTasks(task) {
-    window.data.selectedHeadlines.delete(task.id);
-    if(task.hasOwnProperty('tags'))
-	task.tags.forEach(tag => window.data.toggleTag(tag, false));
-    task.subentries.forEach(subtask => unselectAllSubTasks(subtask));
+function unselectHeadline(headline) {
+    window.data.selectedHeadlines.delete(headline.id);
+    headline.tags.forEach(tag => window.data.toggleTag(tag, false));
+    headline.children.forEach(id => unselectHeadline(window.data.headlines.desc[id]));
 }
 
-function flipTask(task) {
-    if(window.data.selectedHeadlines.has(task.id))
-	unselectAllSubTasks(task);
+function flipHeadline(headline) {
+    if(window.data.selectedHeadlines.has(headline.id))
+	unselectHeadline(headline);
     else
-	selectAllSubTasks(task);
+	selectHeadline(headline);
 
     draw();
 }
 
-function flipTasks() {
-    if(window.data.flipTasks() ^ window.data.isAnyTagSelected())
+function flipHeadlines() {
+    if(window.data.flipHeadlines() ^ window.data.isAnyTagSelected())
 	window.data.flipTags();
 
     draw();
 }
 
-function forAllTasksWithTagDo(task, tag, action) {
-    if(task.hasOwnProperty('tags')
-       && task.tags.has(tag))
-	action(task.id);
-    task.subentries.forEach(task => forAllTasksWithTagDo(task, tag, action));
-}
-
-function selectAllTasksWithTag(task, tag) {
-    return forAllTasksWithTagDo(task, tag, task_id => window.data.selectedHeadlines.add(task_id));
-}
-
-function unselectAllTasksWithTag(task, tag) {
-    return forAllTasksWithTagDo(task, tag, task_id => window.data.selectedHeadlines.delete(task_id));
+function forAllHeadlinesWithTagDo(tag, action) {
+    window.data.headlines.desc.forEach(headline => headline.tags.has(tag) ? action(headline.id) : null);
 }
 
 function flipTag(tag) {
     if(window.data.isTagSelected(tag)) {
 	window.data.flipTag(tag, false);
-	window.data.tasks.forEach(task => unselectAllTasksWithTag(task, tag));
+	forAllHeadlinesWithTagDo(tag, id => window.data.selectedHeadlines.delete(id));
     }
     else {
 	window.data.flipTag(tag, true);
-	window.data.tasks.forEach(task => selectAllTasksWithTag(task, tag));
+	forAllHeadlinesWithTagDo(tag, id => window.data.selectedHeadlines.add(id));
     }
 
     draw();
 }
 
-function forAllTasksWithATagDo(task, action) {
-    if(task.hasOwnProperty('tags') && 0 < task.tags.size)
-	action(task.id);
-    task.subentries.forEach(task => forAllTasksWithATagDo(task, action));
+function forAllHeadlinesWithATagDo(action) {
+    window.data.headlines.desc.forEach(headline => 0 < headline.tags.size ? action(headline.id) : null);
 }
 
 function flipTags() {
     if(window.data.flipTags())
-	window.data.tasks.forEach(task => forAllTasksWithATagDo(task, task_id => window.data.selectedHeadlines.delete(task_id)));
+	forAllHeadlinesWithATagDo(id => window.data.selectedHeadlines.delete(id));
     else
-	window.data.tasks.forEach(task => forAllTasksWithATagDo(task, task_id => window.data.selectedHeadlines.add(task_id)));
+	forAllHeadlinesWithATagDo(id => window.data.selectedHeadlines.add(id));
 
     draw();
 }

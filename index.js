@@ -63,7 +63,7 @@ window.onload = async function () {
 							   evening: 17, eveningProbability: 0.1,
 							   weekendShift: 5});
 
-	var data = randomData(projects, "2019-01-01", "2019-08-31", activityRandomizer, 100);
+	var data = randomData(projects, "2016-01-01", "2019-08-31", activityRandomizer, 100);
 
 	if(false) { console.log(projects); console.log(data); }
 
@@ -477,8 +477,7 @@ function drawDay(data, step, numberOfDays, totalTime, color) {
 
     const interSize = 1;
 
-    const palette = d3.scaleLinear().domain([0,step]).range(["white", color]);
-    const palette2 = d3.scaleLinear().domain([0,7*60]).range(["white", color]);
+    const palette = d3.scaleLinear().domain([0, step]).range(["white", color]);
 
     const day = d3.select("div#day").append("svg");
 
@@ -571,7 +570,7 @@ function drawBrowser(filter, averagePerDay) {
     svg.selectAll('g')
 	.data(window.data.headlines.desc)
 	.join('g')
-	.attr("transform", ({depth, id}) => `translate(${depth * xShift},${yOffset + id * yShift})`)
+	.attr("transform", ({depth, id}) => `translate(${depth * xShift},${yOffset + (id + 1) * yShift})`)
 
 	.append('text')
 	.text(({name}) => name)
@@ -579,7 +578,7 @@ function drawBrowser(filter, averagePerDay) {
 	.attr("headline-id", ({id}) => id)
 	.attr("is-selected", ({id}) => window.data.selectedHeadlines.has(id))
 	.attr("is-habit", ({ishabit}) => ishabit ? "true" : "false")
-	.on("click", flipHeadline)
+	.on("click", flipHeadline);
 
     // .append('span')
     // .text(task => {
@@ -606,12 +605,14 @@ function drawBrowser(filter, averagePerDay) {
     //.attr("is-selected", window.data.selectedHeadlines.size == 0)
     //.on("click", flipHeadlines);
 
-    // d3.select("#browser")
-    //	.insert("li", ":first-child")
-    //	.text("None")
-    //	.attr("class", "task")
-    //	.attr("is-selected", window.data.selectedHeadlines.size == 0)
-    //	.on("click", flipHeadlines);
+     d3.select("svg#browser")
+	.insert("g", ":first-child")
+	.attr("transform", `translate(0,${yOffset})`)
+	.insert("text")
+	.text("None")
+	.attr("class", "headline")
+	.attr("is-selected", window.data.selectedHeadlines.size == 0)
+	.on("click", flipHeadlines);
 }
 
 function drawCalendar(data, averagePerDay,

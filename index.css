@@ -94,7 +94,7 @@ body[visibility=soft]
 
 #select
 {
-    text-align:center;
+    text-align: center;
 }
 
 #day
@@ -104,19 +104,11 @@ body[visibility=soft]
 
 #headlines
 {
-    float:left;
+    float: left;
+    width: 40%;
 }
 
-#tags g
-{
-    cursor: pointer;
-}
-
-#browser
-{
-    width: 50%;
-}
-
+#tags g,
 .headline
 {
     cursor: pointer;
@@ -144,7 +136,8 @@ body[visibility=soft]
 
 #calendar
 {
-    float:right;
+    float: right;
+    width: 60%;
 }
 
 .calendar-year

@@ -127,8 +127,7 @@ function reduceDuration(entries, result = new Map()) {
 function computeCalendarDurations(headlines, ids, filter) {
 
     var map = headlines.reduce((days, {entries}, id) =>
-			       ids.has(id)
-			       ?
+			       ids.has(id) ?
 			       entries.reduce((days, entry) => reduceDuration(filter(entry), days),
 					      days)
 			       : days,
@@ -188,16 +187,44 @@ function reduceInterval(entries, minutes, result = Array(Math.ceil(24 * 60 / min
 function computeDayDurations(headlines, pace, ids, filter) {
 
     return headlines.reduce((intervals,{entries},id) =>
-			    ids.has(id)
-			    ?
+			    ids.has(id) ?
 			    entries.reduce((intervals, entry) => reduceInterval(filter(entry), pace, intervals),
 					   intervals)
 			    : intervals,
 			    Array(Math.ceil(24 * 60 / pace)).fill(0));
 }
 
-function computeHeadlinesDurations(headlines, ids, filter) {
+function reduceTotal(entries) {
+    return entries.reduce((total, {start:start, end:end}) => moment(end).diff(start, 'minutes'), 0);
+}
 
+function computeHeadlinesDurations(headlines, ids, filter) {
+    var result = Array(headlines.length).fill().map(_ => ({total: 0, percentage: 0}));
+    var top = 0;
+
+    headlines.forEach((headline, id) => {
+	if(ids.has(id)) {//TODO maybe optional
+	    const total = headline.entries.reduce((total, entry) => total + reduceTotal(filter(entry)), 0);
+	    var current = id;
+	    do {
+		result[current].total += total;
+		current = headlines[current].parent;
+	    } while(current != null);
+
+	    top += total;
+	}
+    });
+
+    headlines.forEach((headline, id) => {
+	if(headline.parent != null)
+	    if(result[headline.parent].total != 0)
+		result[id].percentage = 100 * result[id].total / result[headline.parent].total;
+	else
+	    if(top != 0)
+		result[id].percentage = 100 * result[id].total / top;
+    });
+
+    return result;
 }
 
 // [{date:Date}] => {'days':Integer,'weekdays':Integer}
@@ -231,7 +258,7 @@ function displayLongDuration(minutes, minutesOfDay = 24 * 60) {
 
     const days = Math.floor(minutes / minutesOfDay);
     if(0 < days)
-	result += days + "d";
+	result += days + "d ";
 
     return result + displayDuration(minutes % minutesOfDay);
 }

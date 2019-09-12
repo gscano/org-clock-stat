@@ -441,6 +441,8 @@ function draw(elements = ['day', 'headlines', 'calendar']) {
 	window.data.current.day = computeDayDurations(window.data.headlines.data, dayPace, window.data.selectedHeadlines, window.data.current.filter);
     }
 
+    window.data.current.headlines = computeHeadlinesDurations(window.data.headlines.data, window.data.selectedHeadlines, window.data.current.filter);
+
     console.log(window.data.current);
 
     drawSelection(window.data.current.totalTime, displayWeekends ? window.data.current.daysCount.days : window.data.current.daysCount.weekdays, averagePerDay, displayWeekends ? window.data.current.daysCount.days - window.data.current.daysCount.weekdays : 0);
@@ -452,7 +454,7 @@ function draw(elements = ['day', 'headlines', 'calendar']) {
 		window.color);
 
     if(elements.includes('headlines'))
-	drawHeadlines(window.data.current.filter, averagePerDay);
+	drawHeadlines(window.data.current.headlines, averagePerDay);
 
     if(elements.includes('calendar'))
 	drawCalendar(window.data.current.calendar, averagePerDay,
@@ -520,9 +522,9 @@ function drawDay(data, step, numberOfDays, totalTime, color) {
 	.text(hours => moment().startOf('day').hours(hours).format('HH:mm'));
 }
 
-function drawHeadlines(filter, averagePerDay) {
+function drawHeadlines(data, averagePerDay) {
     drawTags();
-    drawBrowser(filter, averagePerDay);
+    drawBrowser(data, averagePerDay);
 }
 
 function drawTags() {
@@ -542,7 +544,7 @@ function drawTags() {
     const tag = svg.selectAll("g")
 	  .data([null].concat(Array.from(window.data.tags).sort((lhs,rhs) => lhs[0] > rhs[0])))
 	  .join("g")
-	  .attr("transform", (_,i) => `translate(${i * width},0)`)
+	  .attr("transform", (_,i) => `translate(${i * width}, 0)`)
 	  .on("click", tag => tag == null ? flipTags() : flipTag(tag));
 
     tag.append("rect")
@@ -551,28 +553,30 @@ function drawTags() {
 	.attr("fill", tag => window.data.getBackgroundColorOf(tag));
 
     tag.append("text")
-	.attr("transform", `translate(${width / 2},20)`)
+	.attr("transform", `translate(${width / 2}, 20)`)
 	.text(tag => tag == null ? 'None' : tag.slice(0, characters))
 	.attr("text-anchor", "middle")
 	.attr("fill", tag => window.data.getColorOf(tag));
 }
 
-function drawBrowser(filter, averagePerDay) {
+function drawBrowser(data, averagePerDay) {
     document.getElementById('browser').innerHTML = '';
 
     const xShift = 20;
-    const yShift = 23;
+    const yShift = 35;
     const yOffset = 20;
 
     const svg = d3.select("svg#browser")
 	  .attr("width", 600).attr("height", window.data.headlines.desc.length * yShift)
 
-    svg.selectAll('g')
-	.data(window.data.headlines.desc)
-	.join('g')
-	.attr("transform", ({depth, id}) => `translate(${depth * xShift},${yOffset + (id + 1) * yShift})`)
+    const g = svg.selectAll('g')
+	  .data(window.data.headlines.desc)
+	  .join('g')
+	  .attr("transform", ({depth, id}) => `translate(${depth * xShift},${yOffset + (id + 1) * yShift})`)
 
-	.append('text')
+    const text = g.append("text")
+
+    text.append("tspan")
 	.text(({name}) => name)
 	.attr("class", "headline")
 	.attr("headline-id", ({id}) => id)
@@ -580,30 +584,39 @@ function drawBrowser(filter, averagePerDay) {
 	.attr("is-habit", ({ishabit}) => ishabit ? "true" : "false")
 	.on("click", flipHeadline);
 
-    // .append('span')
-    // .text(task => {
-    //     const flattened = flattenTask([], task);
-    //     const filtered = filterTasks(flattened, filter);
-    //     const reduced = reduceDuration(filtered);
-    //     return displayLongDuration(d3.sum(reduced, ({duration:duration}) => duration), averagePerDay);
-    // })
+    text.append("tspan")
+	.attr("dx", 10)
+	.text(({id}) => displayLongDuration(data[id].total))
+	.append("title").text(({id}) => data[id].percentage.toFixed(1) + "%");
 
-    // .filter(task => task.hasOwnProperty('tags') && 0 < task.tags.size)
-    // .append('ul').attr("class", "tags").selectAll('ul')
-    // .data(task => Array.from(task.tags).sort().map(tag => [window.data.selectedHeadlines.has(task.id), tag]))
-    // .enter()
-    // .append('li')
-    // .text(([_,tag]) => tag)
-    // .attr("is-selected", ([selected,tag]) => selected)
-    // .style("color", ([selected,tag]) => window.data.getColorOf(tag, selected))
-    // .style("background-color", ([selected,tag]) => window.data.getBackgroundColorOf(tag, selected));
+    const xRadix = 15;
+    const yRadix = 12;
 
-    // d3.select("#browser")
-    //.insert("li", ":first-child")
-    //.text("None")
-    //.attr("class", "task")
-    //.attr("is-selected", window.data.selectedHeadlines.size == 0)
-    //.on("click", flipHeadlines);
+    const characters = 4;
+
+    const width = 15 * characters;
+    const height = 30;
+
+    const tags = g.filter(headline => 0 < headline.tags.size)
+	  .append("g")
+	  .attr("transform", `translate(300, 0)`)
+	  .selectAll("g")
+	  .data(headline =>
+		Array.from(headline.tags)
+		.map(tag => [window.data.selectedHeadlines.has(headline.id), tag]))
+	  .enter();
+
+    tags.append("rect")
+	.attr("transform", (_, i) => `translate(${i * width}, 0)`)
+	.attr("width", width).attr("height", height)
+	.attr("ry", xRadix).attr("rx", yRadix)
+	.attr("fill", ([selected, tag]) => window.data.getBackgroundColorOf(tag, selected))
+
+    tags.append("text")
+	.attr("transform", (_, i) => `translate(${i * width + width / 2}, 20)`)
+	.text(([_,tag]) => tag)
+	.attr("text-anchor", "middle")
+	.attr("fill", ([selected, tag]) => window.data.getColorOf(tag, selected))
 
      d3.select("svg#browser")
 	.insert("g", ":first-child")

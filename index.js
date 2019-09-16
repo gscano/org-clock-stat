@@ -135,7 +135,7 @@ class Data {
 	entries.forEach(entry => this.setParent(entry, null));
 
 	this.tagsCount = this.collectTags(entries);
-	this.tags = Array.from(this.tagsCount).sort((lhs,rhs) => lhs[0] > rhs[0]).reduce((tags, [tag,_]) => tags.add(tag), new Set());
+	this.tags = Array.from(this.tagsCount).sort((lhs,rhs) => lhs > rhs).reduce((tags, [tag,_]) => tags.add(tag), new Set());
 	this.tagsColor = Array.from(this.tags).reduce((colors, tag) => colors.set(tag, stringToColor(tag)), new Map());
 
 	this.headlines = flattenHeadlines(entries);
@@ -563,11 +563,11 @@ function drawBrowser(data, averagePerDay) {
     document.getElementById('browser').innerHTML = '';
 
     const xShift = 20;
-    const yShift = 35;
+    const yShift = 33;
     const yOffset = 20;
 
     const svg = d3.select("svg#browser")
-	  .attr("width", 600).attr("height", window.data.headlines.desc.length * yShift)
+	  .attr("width", 600).attr("height", yOffset + (window.data.headlines.desc.length + 1) * yShift)
 
     const g = svg.selectAll('g')
 	  .data(window.data.headlines.desc)
@@ -599,10 +599,9 @@ function drawBrowser(data, averagePerDay) {
 
     const tags = g.filter(headline => 0 < headline.tags.size)
 	  .append("g")
-	  .attr("transform", `translate(300, 0)`)
+	  .attr("transform", `translate(300, -21)`)
 	  .selectAll("g")
-	  .data(headline =>
-		Array.from(headline.tags)
+	  .data(headline => Array.from(headline.tags).sort((lhs, rhs) => lhs > rhs)
 		.map(tag => [window.data.selectedHeadlines.has(headline.id), tag]))
 	  .enter();
 
@@ -610,13 +609,13 @@ function drawBrowser(data, averagePerDay) {
 	.attr("transform", (_, i) => `translate(${i * width}, 0)`)
 	.attr("width", width).attr("height", height)
 	.attr("ry", xRadix).attr("rx", yRadix)
-	.attr("fill", ([selected, tag]) => window.data.getBackgroundColorOf(tag, selected))
+	.attr("fill", ([selected, tag]) => window.data.getBackgroundColorOf(tag, selected));
 
     tags.append("text")
 	.attr("transform", (_, i) => `translate(${i * width + width / 2}, 20)`)
 	.text(([_,tag]) => tag)
 	.attr("text-anchor", "middle")
-	.attr("fill", ([selected, tag]) => window.data.getColorOf(tag, selected))
+	.attr("fill", ([selected, tag]) => window.data.getColorOf(tag, selected));
 
      d3.select("svg#browser")
 	.insert("g", ":first-child")

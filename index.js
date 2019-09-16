@@ -207,10 +207,10 @@ class Data {
 	this.flipTags();
     }
 
-    flipHeadlines() {
-	var fill = this.selectedHeadlines.size == 0;
+    flipHeadlines(onOff) {
+	var fill = onOff == null ? this.selectedHeadlines.size == 0 : onOff;
 	if(fill)
-	    d3.range(0, this.maxHeadlineId + 1).forEach(task_id => this.selectedHeadlines.add(task_id));
+	    d3.range(0, this.maxHeadlineId).forEach(task_id => this.selectedHeadlines.add(task_id));
 	else
 	    this.selectedHeadlines.clear();
 	return fill;
@@ -222,9 +222,9 @@ class Data {
 	return clear;
     }
 
-    flipTag(tag, on_off) {
+    flipTag(tag, onOff) {
 	var count = this.tagsCount.get(tag);
-	count.current = on_off ? count.max : 0;
+	count.current = onOff ? count.max : 0;
 	this.tagsCount.set(tag, count);
     }
 
@@ -239,9 +239,9 @@ class Data {
 	return any;
     }
 
-    toggleTag(tag, on_off) {
+    toggleTag(tag, onOff) {
 	var count = this.tagsCount.get(tag);
-	if(on_off)
+	if(onOff)
 	    count.current = Math.min(count.current + 1, count.max);
 	else
 	    count.current = Math.max(count.current - 1, 0);
@@ -254,19 +254,19 @@ class Data {
 	    return '#eeeeee';
     }
 
-    getColorOf(tag) {
+    getColorOf(tag, force = false) {
 	if(tag == null) {
 	    return this.isAnyTagSelected() ? 'black' : 'white';
 	}
 	else
-	    return this.isTagSelected(tag) ? '#eeeeee' : this.getColorOfTag(tag);
+	    return this.isTagSelected(tag) || force ? '#eeeeee' : this.getColorOfTag(tag);
     }
 
-    getBackgroundColorOf(tag) {
+    getBackgroundColorOf(tag, force = false) {
 	if(tag == null) {
 	    return this.isAnyTagSelected() ? '#eeeeee' : 'black';
 	}
-	return this.isTagSelected(tag) ? this.getColorOfTag(tag) : '#eeeeee';
+	return this.isTagSelected(tag) || force ? this.getColorOfTag(tag) : '#eeeeee';
     }
 }
 
@@ -433,7 +433,6 @@ function draw(elements = ['day', 'headlines', 'calendar']) {
     if(elements.includes('calendar')) {
 	window.data.current.calendar = computeCalendarDurations(window.data.headlines.data, window.data.selectedHeadlines, window.data.current.filter);
 
-	window.data.current.totalTime = d3.sum(window.data.current.calendar, day => day.duration);
 	window.data.current.daysCount = extractDaysInfo(window.data.current.calendar);
     }
 
@@ -441,9 +440,9 @@ function draw(elements = ['day', 'headlines', 'calendar']) {
 	window.data.current.day = computeDayDurations(window.data.headlines.data, dayPace, window.data.selectedHeadlines, window.data.current.filter);
     }
 
-    window.data.current.headlines = computeHeadlinesDurations(window.data.headlines.data, window.data.selectedHeadlines, window.data.current.filter);
+    [window.data.current.totalTime, window.data.current.headlines] = computeHeadlinesDurations(window.data.headlines.data, window.data.selectedHeadlines, window.data.current.filter);
 
-    console.log(window.data.current);
+    console.log(window.data);
 
     drawSelection(window.data.current.totalTime, displayWeekends ? window.data.current.daysCount.days : window.data.current.daysCount.weekdays, averagePerDay, displayWeekends ? window.data.current.daysCount.days - window.data.current.daysCount.weekdays : 0);
 
@@ -454,7 +453,7 @@ function draw(elements = ['day', 'headlines', 'calendar']) {
 		window.color);
 
     if(elements.includes('headlines'))
-	drawHeadlines(window.data.current.headlines, averagePerDay);
+	drawHeadlines(window.data.headlines.desc, window.data.current.headlines, window.data.current.totalTime, averagePerDay);
 
     if(elements.includes('calendar'))
 	drawCalendar(window.data.current.calendar, averagePerDay,
@@ -464,8 +463,13 @@ function draw(elements = ['day', 'headlines', 'calendar']) {
 }
 
 function drawSelection(totalTime, days, averagePerDay, weekends) {
+    const percentage = Math.floor(totalTime / days / averagePerDay * 100);
+
     d3.select('span#days').text(days).attr("title", weekends + " weekend days (" + Math.floor(weekends / (days + weekends) * 100).toFixed(0) + "%)");
-    d3.select('span#hours').text(displayDuration(Math.floor(totalTime / days))).attr("title", Math.floor(totalTime / days / averagePerDay * 100).toFixed(0) + "% of the targeted average");
+    d3.select('span#hours').text(displayDuration(Math.floor(totalTime / days))).attr("title", percentage.toFixed(0) + "% of the targeted average");
+
+    document.getElementById('days' ).style.color = window.color;
+    document.getElementById('hours').style.color = window.color;
 }
 
 function drawDay(data, step, numberOfDays, totalTime, color) {
@@ -522,9 +526,9 @@ function drawDay(data, step, numberOfDays, totalTime, color) {
 	.text(hours => moment().startOf('day').hours(hours).format('HH:mm'));
 }
 
-function drawHeadlines(data, averagePerDay) {
+function drawHeadlines(desc, data, total, averagePerDay) {
     drawTags();
-    drawBrowser(data, averagePerDay);
+    drawBrowser(desc, data, total, averagePerDay);
 }
 
 function drawTags() {
@@ -559,7 +563,7 @@ function drawTags() {
 	.attr("fill", tag => window.data.getColorOf(tag));
 }
 
-function drawBrowser(data, averagePerDay) {
+function drawBrowser(desc, data, total, averagePerDay) {
     document.getElementById('browser').innerHTML = '';
 
     const xShift = 20;
@@ -617,14 +621,31 @@ function drawBrowser(data, averagePerDay) {
 	.attr("text-anchor", "middle")
 	.attr("fill", ([selected, tag]) => window.data.getColorOf(tag, selected));
 
-     d3.select("svg#browser")
-	.insert("g", ":first-child")
-	.attr("transform", `translate(0,${yOffset})`)
-	.insert("text")
+    const none = d3.select("svg#browser")
+	  .insert("g", ":first-child")
+	  .attr("transform", `translate(0,${yOffset})`)
+	  .insert("text");
+
+    none.insert("tspan")
 	.text("None")
 	.attr("class", "headline")
 	.attr("is-selected", window.data.selectedHeadlines.size == 0)
-	.on("click", flipHeadlines);
+	.on("click", headlinesOff);
+
+    none.insert("tspan")
+	.attr("dx", 10)
+	.text("/");
+
+    none.insert("tspan")
+	.attr("dx", 10)
+	.text("All")
+	.attr("class", "headline")
+	.attr("is-selected", window.data.selectedHeadlines.size == window.data.headlines.desc.length)
+	.on("click", headlinesOn);
+
+    none.insert("tspan")
+	.attr("dx", 10)
+	.text(displayLongDuration(total))
 }
 
 function drawCalendar(data, averagePerDay,
@@ -757,8 +778,16 @@ function flipHeadline(headline) {
     draw();
 }
 
-function flipHeadlines() {
-    if(window.data.flipHeadlines() ^ window.data.isAnyTagSelected())
+function headlinesOff() {
+    flipHeadlines(false);
+}
+
+function headlinesOn() {
+    flipHeadlines(true);
+}
+
+function flipHeadlines(onOff) {
+    if(window.data.flipHeadlines(onOff) ^ window.data.isAnyTagSelected())
 	window.data.flipTags();
 
     draw();

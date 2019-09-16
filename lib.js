@@ -200,7 +200,7 @@ function reduceTotal(entries) {
 
 function computeHeadlinesDurations(headlines, ids, filter) {
     var result = Array(headlines.length).fill().map(_ => ({total: 0, percentage: 0}));
-    var top = 0;
+    var total_ = 0;
 
     headlines.forEach((headline, id) => {
 	if(ids.has(id)) {//TODO maybe optional
@@ -211,20 +211,21 @@ function computeHeadlinesDurations(headlines, ids, filter) {
 		current = headlines[current].parent;
 	    } while(current != null);
 
-	    top += total;
+	    total_ += total;
 	}
     });
 
-    headlines.forEach((headline, id) => {
-	if(headline.parent != null)
-	    if(result[headline.parent].total != 0)
-		result[id].percentage = 100 * result[id].total / result[headline.parent].total;
-	else
-	    if(top != 0)
-		result[id].percentage = 100 * result[id].total / top;
-    });
+    if(total_ != 0)
+	headlines.forEach((headline, id) => {
+	    if(headline.parent != null) {
+		if(result[headline.parent].total != 0)
+		    result[id].percentage = 100 * result[id].total / result[headline.parent].total;
+	    }
+	    else
+		result[id].percentage = 100 * result[id].total / total_;
+	});
 
-    return result;
+    return [total_, result];
 }
 
 // [{date:Date}] => {'days':Integer,'weekdays':Integer}
@@ -250,6 +251,12 @@ function displayMinutesAsHour(minutes) {
 // Integer => String([0-2][0-9]:[0-5][0-9])
 function displayDuration(minutes, sep = ':') {
     return displayTwoDigits(Math.floor(minutes / 60)) + sep + displayTwoDigits(minutes % 60);
+}
+
+function splitDuration(minutes, minutesOfDay = 24 * 60) {
+    return {days: Math.floor(minutes / minutesOfDay),
+	    hours: Math.floor((minutes % minutesOfDay) / 60),
+	    minutes: (minutes % minutesOfDay) % 60};
 }
 
 // Interger => String

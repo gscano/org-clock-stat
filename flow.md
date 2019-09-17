@@ -45,3 +45,11 @@
 * count total time
 * count the total number of days and weekdays
 * `drawDays`, `drawHeadlines`, `drawCalendar`
+
+# `window` object
+
+* `color`: current color
+* `defaultStep`: default time step
+* `startingDatePicker`: starting date selection
+* `endingDatePicker`: ending date selection
+* `data`: raw, display and computed data

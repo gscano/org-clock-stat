@@ -151,6 +151,7 @@ class Data {
 	 .map(moment => moment.toDate()));
 
 	this.selectedHeadlines = new Set();
+	this.foldedHeadlines = new Set();
 
 	this.current = {
 	    filter: null,
@@ -214,6 +215,27 @@ class Data {
 	else
 	    this.selectedHeadlines.clear();
 	return fill;
+    }
+
+    foldHeadline(headline) {
+	if(this.foldedHeadlines.has(headline.id))
+	    this.foldedHeadlines.delete(headline.id);
+	else
+	    this.foldedHeadlines.add(headline.id);
+    }
+
+    isAnyAncestorFolded(headline) {
+	return headline.parent != null
+	    && (this.foldedHeadlines.has(this.headlines.desc[headline.id].parent)
+		|| this.isAnyAncestorFolded(this.headlines.desc[headline.parent]));
+    }
+
+    areAllChildrenSelected(headline) {
+	return headline.children.reduce((selected, id) =>
+					selected
+					&& this.selectedHeadlines.has(id)
+					&& this.areAllChildrenSelected(this.headlines.desc[id]),
+					true);
     }
 
     flipTags() {
@@ -453,7 +475,7 @@ function draw(elements = ['day', 'headlines', 'calendar']) {
 		window.color);
 
     if(elements.includes('headlines'))
-	drawHeadlines(window.data.headlines.desc, window.data.current.headlines, window.data.current.totalTime, averagePerDay);
+	drawHeadlines(window.data.current.headlines, window.data.current.totalTime, averagePerDay);
 
     if(elements.includes('calendar'))
 	drawCalendar(window.data.current.calendar, averagePerDay,
@@ -563,7 +585,7 @@ function drawTags() {
 	.attr("fill", tag => window.data.getColorOf(tag));
 }
 
-function drawBrowser(desc, data, total, averagePerDay) {
+function drawBrowser(data, total, averagePerDay) {
     document.getElementById('browser').innerHTML = '';
 
     const xShift = 20;
@@ -573,14 +595,27 @@ function drawBrowser(desc, data, total, averagePerDay) {
     const svg = d3.select("svg#browser")
 	  .attr("width", 600).attr("height", yOffset + (window.data.headlines.desc.length + 1) * yShift)
 
+    const unfolded = window.data.headlines.desc.filter(headline => !window.data.isAnyAncestorFolded(headline));
+
     const g = svg.selectAll('g')
-	  .data(window.data.headlines.desc)
+	  .data(unfolded)
 	  .join('g')
-	  .attr("transform", ({depth, id}) => `translate(${depth * xShift},${yOffset + (id + 1) * yShift})`)
+	  .attr("transform", ({depth}, i) =>
+		`translate(${depth * xShift},${yOffset + (i + 1) * yShift})`)
 
     const text = g.append("text")
 
     text.append("tspan")
+	.text(headline => headline.children.length == 0 ? ""
+	      : (window.data.areAllChildrenSelected(headline) ?
+		 (window.data.foldedHeadlines.has(headline.id) ? "▸" : "▾")
+		 : (window.data.foldedHeadlines.has(headline.id) ? "▹" : "▿")))
+	.attr("class", "folder")
+	.on("click", foldHeadline);
+
+    text.append("tspan")
+	.attr("dx", 5)
+	.attr("dy", 1)
 	.text(({name}) => name)
 	.attr("class", "headline")
 	.attr("headline-id", ({id}) => id)
@@ -789,6 +824,12 @@ function headlinesOn() {
 function flipHeadlines(onOff) {
     if(window.data.flipHeadlines(onOff) ^ window.data.isAnyTagSelected())
 	window.data.flipTags();
+
+    draw();
+}
+
+function foldHeadline(headline) {
+    window.data.foldHeadline(headline);
 
     draw();
 }

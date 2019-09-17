@@ -129,6 +129,11 @@ body[visibility=soft]
     font-weight: normal;
 }
 
+.folder
+{
+    cursor: pointer;
+}
+
 .total
 {
     text-align: right;

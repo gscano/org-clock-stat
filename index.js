@@ -207,19 +207,33 @@ class Data {
     }
 
     selectAll() {
-	this.flipHeadlines();
-	this.flipTags();
+	this.flipHeadlines(true);
     }
 
-    flipHeadlines(onOff) {
-	var fill = onOff == null ? this.selectedHeadlines.size == 0 : onOff;
+    selectHeadline(headline) {
+	this.selectedHeadlines.add(headline.id);
+	headline.tags.forEach(tag => this.toggleTag(tag, true));
+	headline.children.forEach(id => this.selectHeadline(this.headlines.desc[id]));
+    }
 
-	if(fill)
-	    d3.range(0, this.maxHeadlineId).forEach(task_id => this.selectedHeadlines.add(task_id));
+    unselectHeadline(headline) {
+	this.selectedHeadlines.delete(headline.id);
+	headline.tags.forEach(tag => this.toggleTag(tag, false));
+	headline.children.forEach(id => this.unselectHeadline(this.headlines.desc[id]));
+    }
+
+    flipHeadline(headline) {
+	if(this.selectedHeadlines.has(headline.id))
+	    this.unselectHeadline(headline);
 	else
-	    this.selectedHeadlines.clear();
+	    this.selectHeadline(headline);
+    }
 
-	return fill;
+    flipHeadlines(on) {
+	if(on)
+	    this.headlines.desc.forEach(headline => this.selectHeadline(headline));
+	else
+	    this.headlines.desc.forEach(headline => this.unselectHeadline(headline));
     }
 
     foldHeadline(headline) {
@@ -244,15 +258,21 @@ class Data {
     }
 
     flipTags() {
-	const clear = this.isAnyTagSelected();
-	this.tags.forEach(tag => this.flipTag(tag, !clear));
-	return clear;
+	if(this.isAnyTagSelected())
+	    this.headlines.desc.filter(headline => 0 < headline.tags.size)
+	    .forEach(headline => this.unselectHeadline(headline));
+	else
+	    this.headlines.desc.filter(headline => 0 < headline.tags.size)
+	    .forEach(headline => this.selectHeadline(headline));
     }
 
-    flipTag(tag, onOff) {
-	const count = this.tagsCount.get(tag);
-	count.current = onOff ? count.max : 0;
-	this.tagsCount.set(tag, count);
+    flipTag(tag) {
+	if(!this.isTagSelected(tag))
+	    this.headlines.desc.filter(headline => headline.tags.has(tag))
+	    .forEach(headline => this.selectHeadline(headline));
+	else
+	    this.headlines.desc.filter(headline => headline.tags.has(tag))
+	    .forEach(headline => this.unselectHeadline(headline));
     }
 
     isTagSelected(tag) {
@@ -434,6 +454,10 @@ function drawAll() {
     draw();
 }
 
+function drawWith() {
+    draw();
+}
+
 function draw(elements = ['day', 'headlines', 'calendar']) {
 
     var averagePerDay = parseInt(document.getElementById('average-hours').value) * 60
@@ -572,7 +596,7 @@ function drawTags() {
 	  .data([null].concat(Array.from(window.data.tags).sort((lhs,rhs) => lhs[0] > rhs[0])))
 	  .join('g')
 	  .attr('transform', (_,i) => `translate(${i * width}, 0)`)
-	  .on('click', tag => tag == null ? flipTags() : flipTag(tag));
+	  .on('click', tag => drawWith(tag == null ? window.data.flipTags() : window.data.flipTag(tag)));
 
     tag.append('rect')
 	.attr('width', width).attr('height', height)
@@ -612,7 +636,7 @@ function drawBrowser(data, total, averagePerDay) {
 			   (window.data.foldedHeadlines.has(headline.id) ? "▸" : "▾")
 			   : (window.data.foldedHeadlines.has(headline.id) ? "▹" : "▿")))
 	.attr('class', "folder")
-	.on('click', foldHeadline);
+	.on('click', headline => drawWith(window.data.foldHeadline(headline)));
 
     text.append('tspan')
 	.attr('dx', 5)
@@ -622,7 +646,7 @@ function drawBrowser(data, total, averagePerDay) {
 	.attr('headline-id', ({id}) => id)
 	.attr('is-selected', ({id}) => window.data.selectedHeadlines.has(id))
 	.attr('is-habit', ({ishabit}) => ishabit ? "true" : "false")
-	.on('click', flipHeadline);
+	.on('click', headline => drawWith(window.data.flipHeadline(headline)));
 
     text.append('tspan')
 	.attr('dx', 10)
@@ -666,7 +690,7 @@ function drawBrowser(data, total, averagePerDay) {
 	.text("None")
 	.attr('class', "headline")
 	.attr('is-selected', window.data.selectedHeadlines.size == 0)
-	.on('click', headlinesOff);
+	.on('click', _ => drawWith(window.data.flipHeadlines(false)));
 
     none.insert('tspan')
 	.attr('dx', 10)
@@ -677,7 +701,7 @@ function drawBrowser(data, total, averagePerDay) {
 	.text("All")
 	.attr('class', "headline")
 	.attr('is-selected', window.data.selectedHeadlines.size == window.data.headlines.desc.length)
-	.on('click', headlinesOn);
+	.on('click', _ => drawWith(window.data.flipHeadlines(true)));
 
     none.insert('tspan')
 	.attr('dx', 10)
@@ -791,76 +815,4 @@ function drawCalendar(data, averagePerDay,
 	.attr('transform', ({date}) => `translate(${dayGridX(date)},${dayGridY(date)})`)
 	.attr("fill", ({duration}) => palette(duration))
 	.append('title').text(({date,duration}) => moment(date).format('YYYY-MM-DD') + " " + displayDuration(duration));
-}
-
-function selectHeadline(headline) {
-    window.data.selectedHeadlines.add(headline.id);
-    headline.tags.forEach(tag => window.data.toggleTag(tag, true));
-    headline.children.forEach(id => selectHeadline(window.data.headlines.desc[id]));
-}
-
-function unselectHeadline(headline) {
-    window.data.selectedHeadlines.delete(headline.id);
-    headline.tags.forEach(tag => window.data.toggleTag(tag, false));
-    headline.children.forEach(id => unselectHeadline(window.data.headlines.desc[id]));
-}
-
-function flipHeadline(headline) {
-    if(window.data.selectedHeadlines.has(headline.id))
-	unselectHeadline(headline);
-    else
-	selectHeadline(headline);
-
-    draw();
-}
-
-function headlinesOff() {
-    flipHeadlines(false);
-}
-
-function headlinesOn() {
-    flipHeadlines(true);
-}
-
-function flipHeadlines(onOff) {
-    if(window.data.flipHeadlines(onOff) ^ window.data.isAnyTagSelected())
-	window.data.flipTags();
-
-    draw();
-}
-
-function foldHeadline(headline) {
-    window.data.foldHeadline(headline);
-
-    draw();
-}
-
-function forAllHeadlinesWithTagDo(tag, action) {
-    window.data.headlines.desc.forEach(headline => headline.tags.has(tag) ? action(headline.id) : null);
-}
-
-function flipTag(tag) {
-    if(window.data.isTagSelected(tag)) {
-	window.data.flipTag(tag, false);
-	forAllHeadlinesWithTagDo(tag, id => window.data.selectedHeadlines.delete(id));
-    }
-    else {
-	window.data.flipTag(tag, true);
-	forAllHeadlinesWithTagDo(tag, id => window.data.selectedHeadlines.add(id));
-    }
-
-    draw();
-}
-
-function forAllHeadlinesWithATagDo(action) {
-    window.data.headlines.desc.forEach(headline => 0 < headline.tags.size ? action(headline.id) : null);
-}
-
-function flipTags() {
-    if(window.data.flipTags())
-	forAllHeadlinesWithATagDo(id => window.data.selectedHeadlines.delete(id));
-    else
-	forAllHeadlinesWithATagDo(id => window.data.selectedHeadlines.add(id));
-
-    draw();
 }

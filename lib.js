@@ -19,13 +19,6 @@ function flattenHeadline({desc, data}, task) {
     return task.subentries.reduce(flattenHeadline, {desc, data});
 }
 
-// Set(Int) => (Int => Bool)
-function createHeadlineFilter(ids) {
-    return function(id) {
-	return ids.has(id);
-    }
-}
-
 // Date => Date => Date => String[year month week isoWeek day] => ({start:Date, end:Date} => [{start:Date, end:Date}])
 function createSplittingFilter(from, to, specific = null, moment_ = 'date') {
     from = moment(from);
@@ -49,27 +42,27 @@ function createSplittingFilter(from, to, specific = null, moment_ = 'date') {
 
 	return result;
 
-	start = moment.max(start, from);
-	end = moment.min(end, to);
+	// start = moment.max(start, from);
+	// end = moment.min(end, to);
 
-	var current = moment.min(start.clone().add(1, 'days').startOf('day'), end);
+	// var current = moment.min(start.clone().add(1, 'days').startOf('day'), end);
 
-	if(specific == null || (specific != null && start.isSame(specific, moment_)))
-	    result.push({start: start.format(format), end: current.format(format)});
+	// if(specific == null || (specific != null && start.isSame(specific, moment_)))
+	//     result.push({start: start.format(format), end: current.format(format)});
 
-	while(!current.isSame(end, 'day')) {
-	    if(specific == null || (specific != null && current.isSame(specific, moment_)))
-		result.push({start: current.format(format),
-			     end: current.add(1, 'days').format(format)});
-	    else
-		current.add(1, 'days');
-	}
+	// while(!current.isSame(end, 'day')) {
+	//     if(specific == null || (specific != null && current.isSame(specific, moment_)))
+	//	result.push({start: current.format(format),
+	//		     end: current.add(1, 'days').format(format)});
+	//     else
+	//	current.add(1, 'days');
+	// }
 
-	if(!current.isSame(end)
-	   && specific == null || (specific != null && end.isSame(specific, moment_)))
-	    result.push({start: current.format(format), end: end.format(format)});
+	// if(!current.isSame(end)
+	//    && specific == null || (specific != null && end.isSame(specific, moment_)))
+	//     result.push({start: current.format(format), end: end.format(format)});
 
-	return result;
+	// return result;
     }
 }
 
@@ -123,17 +116,34 @@ function reduceDuration(entries, result = new Map()) {
     return entries.reduce(reduce, result);
 }
 
-// => [{date: Date, duration: Int}]
-function computeCalendarDurations(headlines, ids, filter) {
+// [{date: Date}] => {'days': Integer, 'weekdays': Integer}
+function extractDaysInfo(data) {
+    return data.reduce((accu, {date}) => {
+	accu.days += 1;
+	accu.weekdays += (1 <= moment(date).isoWeekday() && moment(date).isoWeekday() <= 5);
 
-    var map = headlines.reduce((days, {entries}, id) =>
-			       ids.has(id) ?
-			       entries.reduce((days, entry) => reduceDuration(filter(entry), days),
+	return accu;
+    },
+		       ({days: 0, weekdays: 0}));
+}
+
+// => [{date: Date, duration: Int}]
+function computeCalendarDurations(headlines, filter) {
+
+    const filterFunc = createSplittingFilter(filter.startingDate, filter.endingDate);
+
+    const map = headlines.reduce((days, {entries}, id) =>
+			       filter.headlines.has(id) ?
+			       entries.reduce((days, entry) => reduceDuration(filterFunc(entry), days),
 					      days)
 			       : days,
 			       new Map());
 
-    return Array.from(map).map(([date, duration]) => ({date: new Date(date), duration: duration}));
+    const calendar = Array.from(map).map(([date, duration]) => ({date: new Date(date), duration: duration}));
+
+    const daysCount = extractDaysInfo(calendar);
+
+    return [calendar, daysCount];
 }
 
 // Date => Date => Integer => [Integer]
@@ -184,11 +194,13 @@ function reduceInterval(entries, minutes, result = Array(Math.ceil(24 * 60 / min
 			  result);
 }
 
-function computeDayDurations(headlines, pace, ids, filter) {
+function computeDayDurations(headlines, pace, filter) {
+
+    const filterFunc = createSplittingFilter(filter.startingDate, filter.endingDate);
 
     return headlines.reduce((intervals,{entries},id) =>
-			    ids.has(id) ?
-			    entries.reduce((intervals, entry) => reduceInterval(filter(entry), pace, intervals),
+			    filter.headlines.has(id) ?
+			    entries.reduce((intervals, entry) => reduceInterval(filterFunc(entry), pace, intervals),
 					   intervals)
 			    : intervals,
 			    Array(Math.ceil(24 * 60 / pace)).fill(0));
@@ -198,13 +210,15 @@ function reduceTotal(entries) {
     return entries.reduce((total, {start:start, end:end}) => moment(end).diff(start, 'minutes'), 0);
 }
 
-function computeHeadlinesDurations(headlines, ids, filter) {
+function computeHeadlinesDurations(headlines, filter) {
     var result = Array(headlines.length).fill().map(_ => ({total: 0, percentage: 0}));
     var total_ = 0;
 
+    const filterFunc = createSplittingFilter(filter.startingDate, filter.endingDate);
+
     headlines.forEach((headline, id) => {
-	if(ids.has(id)) {//TODO maybe optional
-	    const total = headline.entries.reduce((total, entry) => total + reduceTotal(filter(entry)), 0);
+	if(filter.headlines.has(id)) {
+	    const total = headline.entries.reduce((total, entry) => total + reduceTotal(filterFunc(entry)), 0);
 	    var current = id;
 	    do {
 		result[current].total += total;
@@ -226,17 +240,6 @@ function computeHeadlinesDurations(headlines, ids, filter) {
 	});
 
     return [total_, result];
-}
-
-// [{date:Date}] => {'days':Integer,'weekdays':Integer}
-function extractDaysInfo(data) {
-    return data.reduce((accu, {date: date}) => {
-	accu.days += 1;
-	accu.weekdays += (1 <= moment(date).isoWeekday() && moment(date).isoWeekday() <= 5);
-
-	return accu;
-    },
-		       ({days: 0, weekdays: 0}));
 }
 
 // Integer => String([0-9][0-9])
@@ -283,6 +286,7 @@ function weekdayShift(weekday) {
     }
 }
 
+// String => 'rgb(Int(0,255),Int(0,255),Int(0,255))'
 function stringToColor(str) {
     var R = 0, G = 0, B = 0;
     const variability = Math.ceil(255 / str.length);
@@ -304,6 +308,7 @@ function stringToColor(str) {
     return `rgb(${R}, ${G}, ${B})`;
 }
 
+// String => Promise
 function load(path) {
     return new Promise((resolve, reject) => {
 

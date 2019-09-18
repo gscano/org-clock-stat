@@ -1,3 +1,5 @@
+const tryUsingWorkers = true;
+
 window.onload = async function () {
 
     window.color = "green";
@@ -26,27 +28,41 @@ window.onload = async function () {
     d3.select('#average-hours').selectAll('option').data(d3.range(0,24)).enter()
 	.append('option').attr('value', hour => hour).text(hour => displayTwoDigits(hour));
     document.getElementById('average-hours').value = "7";
-    document.getElementById('average-hours').addEventListener('change', drawOnAverageChange);
+    document.getElementById('average-hours').addEventListener('change', onAverageChange);
     d3.select('#average-minutes').selectAll('option').data(d3.range(0,60)).enter()
 	.append('option').attr('value', minutes => minutes).text(minutes => displayTwoDigits(minutes));
     document.getElementById('average-minutes').value = "0";
-    document.getElementById('average-minutes').addEventListener('change', drawOnAverageChange);
+    document.getElementById('average-minutes').addEventListener('change', onAverageChange);
 
     document.getElementById('day-pace').value = window.defaultStep;
-    document.getElementById('day-pace').addEventListener('change', drawOnDayPaceChange);
+    document.getElementById('day-pace').addEventListener('change', onDayPaceChange);
 
-    document.getElementById('display-weekends').addEventListener('change', drawOnWeekendsChange);
-    document.getElementById('weekends-as-bonus').addEventListener('change', drawOnWeekendsChange);
+    document.getElementById('display-weekends').addEventListener('change', onWeekendsChange);
+    document.getElementById('weekends-as-bonus').addEventListener('change', onWeekendsChange);
 
-    document.getElementById('first-glance').addEventListener('click', toggleFirstGlance);
-    document.getElementById('first-glance-weekdays').addEventListener('change', drawOnFirstGlanceChange);
-    document.getElementById('first-glance-months').addEventListener('change', drawOnFirstGlanceChange);
-    document.getElementById('first-glance-years').addEventListener('change', drawOnFirstGlanceChange);
+    document.getElementById('first-glance').addEventListener('click', onToggleFirstGlance);
+    document.getElementById('first-glance-weekdays').addEventListener('change', onFirstGlanceChange);
+    document.getElementById('first-glance-months').addEventListener('change', onFirstGlanceChange);
+    document.getElementById('first-glance-years').addEventListener('change', onFirstGlanceChange);
 
     document.getElementById('file-input').addEventListener('change', readFile, false);
 
     window.startingDatePicker = new Pikaday({ field: document.getElementById('starting-date') });
     window.endingDatePicker = new Pikaday({ field: document.getElementById('ending-date') });
+
+    /* WORKERS */
+    if(tryUsingWorkers && typeof(Worker) !== undefined && !window.location.href.startsWith('file:///')) {
+	window.worker = { day:       new Worker('worker.js', {name: 'day'}),
+			  headlines: new Worker('worker.js', {name: 'headlines'}),
+			  calendar:  new Worker('worker.js', {name: 'calendar'}) };
+
+	window.worker.day.      onmessage = event => collectWorkThenDisplay(event.data, 'day');
+	window.worker.headlines.onmessage = event => collectWorkThenDisplay(event.data, 'headlines');
+	window.worker.calendar. onmessage = event => collectWorkThenDisplay(event.data, 'calendar');
+    }
+    else
+	window.worker = null;
+    /* WORKERS */
 
     /* DEMO AND TESTS ONLY */
     if(true) {
@@ -65,15 +81,9 @@ window.onload = async function () {
 
 	const data = randomData(projects, "2016-01-01", "2019-08-31", activityRandomizer, 100);
 
-	if(false) { console.log(projects); console.log(data); }
-
 	readData(data.join('\n'));
     }
     /* DEMO AND TESTS ONLY */
-
-    //TODO Workers
-    //window.isLocal = window.location.href.startsWith('file:///');
-    //console.log(isLocal)
 }
 
 function pickColor() {
@@ -135,7 +145,7 @@ function hideHelp() {
 
 class Data {
     constructor(entries) {
-	this.maxHeadlineId = this.setId(entries);
+	this.setId(entries);
 	entries.forEach(entry => this.setParent(entry, null));
 
 	this.tagsCount = this.collectTags(entries);
@@ -144,28 +154,26 @@ class Data {
 
 	this.headlines = flattenHeadlines(entries);
 
-	this.headlines.desc.filter(headline => headline.parent != null).forEach(headline => this.headlines.desc[headline.parent].children.push(headline.id));
+	this.headlines.desc.filter(headline => headline.parent != null)
+	    .forEach(headline => this.headlines.desc[headline.parent].children.push(headline.id));
 
 	([this.firstDate, this.lastDate] =
-	 this.headlines.data.reduce(([first, last], {entries}) =>
-				    entries.reduce(([first, last], {start, end}) => [first.isBefore(moment(start)) ? first : moment(start),
-										     last.isAfter(moment(end)) ? last : moment(end)],
-						   [first, last]),
-				    [moment(), moment(0)])
+	 this.headlines.data.reduce(
+	     ([first, last], {entries}) => entries.reduce(
+		 ([first, last], {start, end}) => [first.isBefore(moment(start)) ? first : moment(start),
+						   last.isAfter(moment(end)) ? last : moment(end)],
+		 [first, last]),
+	     [moment(), moment(0)])
 	 .map(moment => moment.toDate()));
 
 	this.selectedHeadlines = new Set();
 	this.foldedHeadlines = new Set();
 
-	this.current = {
-	    filter: null,
-	    day: [],
-	    calendar: [],
-	    headlines: [],
-	    totalTime: 0,
-	    daysCount: {days:0, weekdays: 0}
-	}
-
+	this.current = {config: null,
+			day: null,
+			calendar: null, daysCount: null,
+			headlines: null, totalTime: null};
+	//
 	this.selectAll();
     }
 
@@ -187,14 +195,9 @@ class Data {
 		function countTags(tags, tag) {
 		    var count = tags.get(tag);
 
-		    if(count === undefined)
-			count = 0;
-		    else
-			count = count.max;
+		    count = count === undefined ? 0 : count.max;
 
-		    tags.set(tag, {current: 0, max: count + 1});
-
-		    return tags;
+		    return tags.set(tag, {current: 0, max: count + 1});
 		}
 
 		Array.from(entry.tags).reduce(countTags, map);
@@ -338,13 +341,21 @@ function readData(input) {
 
     window.startingDatePicker.config({ minDate: window.data.firstDate,
 				       maxDate: window.data.lastDate,
-				       onSelect: changeStartingDate });
+				       onSelect: onStartingDateChange });
 
     window.endingDatePicker.config({ minDate: window.data.firstDate,
 				     maxDate: window.data.lastDate,
-				     onSelect: changeEndingDate });
+				     onSelect: onEndingDateChange });
 
-    draw();
+    if(window.worker != null) {
+	const config = window.data.current.config = collectConfig();
+
+	window.worker.day      .postMessage({data: window.data.headlines.data, config: config});
+	window.worker.headlines.postMessage({data: window.data.headlines.data, config: config});
+	window.worker.calendar .postMessage({data: window.data.headlines.data, config: config});
+    }
+    else
+	draw();
 }
 
 function parse(data) {
@@ -404,34 +415,33 @@ function parse(data) {
     entry.entries.push({start:start, end:end});
 }
 
-function changeStartingDate() {
+function onStartingDateChange() {
     window.endingDatePicker.config({minDate: window.startingDatePicker.getDate()});
     draw();
 }
 
-function changeEndingDate() {
+function onEndingDateChange() {
     window.startingDatePicker.config({maxDate: window.endingDatePicker.getDate()});
     draw();
 }
 
-function toggleFirstGlance() {
+function onToggleFirstGlance() {
     var value = document.querySelector('#first-glance-weekdays').checked
-       || document.querySelector('#first-glance-months').checked
+	|| document.querySelector('#first-glance-months').checked
 	|| document.querySelector('#first-glance-years').checked;
-
 
     document.querySelector('#first-glance-weekdays').checked = !value;
     document.querySelector('#first-glance-months').checked = !value;
     document.querySelector('#first-glance-years').checked = !value;
 
-    drawOnFirstGlanceChange();
+    onFirstGlanceChange();
 }
 
-function drawOnAverageChange() {
+function onAverageChange() {
     draw(['headlines', 'calendar']);
 }
 
-function drawOnDayPaceChange() {
+function onDayPaceChange() {
     var dayPace = parseInt(document.getElementById('day-pace').value);
 
     if(dayPace <= 0 || 120 < dayPace) {
@@ -442,70 +452,121 @@ function drawOnDayPaceChange() {
     draw(['day']);
 }
 
-function drawOnWeekendsChange() {
+function onWeekendsChange() {
     draw();
 }
 
-function drawOnFirstGlanceChange() {
+function onFirstGlanceChange() {
     draw(['calendar']);
 }
 
-function drawAll() {
+function collectConfig() {
+    return {
+	averagePerDay: parseInt(document.getElementById('average-hours').value) * 60 + parseInt(document.getElementById('average-minutes').value),
+	dayPace: parseInt(document.getElementById('day-pace').value),
+
+	displayWeekends: document.querySelector('#display-weekends').checked,
+	weekendsAsBonus: document.querySelector('#weekends-as-bonus').checked,
+
+	hasFirstGlanceWeekdays: document.querySelector('#first-glance-weekdays').checked,
+	hasFirstGlanceMonths: document.querySelector('#first-glance-months').checked,
+	hasFirstGlanceYears: document.querySelector('#first-glance-years').checked,
+
+	filter: {
+	    headlines: window.data.selectedHeadlines,
+	    startingDate: window.startingDatePicker.getMoment().format('YYYY-MM-DD'),
+	    endingDate: window.endingDatePicker.getMoment().format('YYYY-MM-DD')
+	}
+    };
+}
+
+function drawWith(elements = ['day', 'headlines', 'calendar'], action = null) {
+    draw(elements);
+}
+
+function drawAllWith() {
     draw();
 }
 
-function drawWith() {
-    draw();
+function collectWorkThenDisplay(data, element) {
+
+    if(element == 'calendar') {
+	[window.data.current.calendar, window.data.current.daysCount] = data;
+    }
+    else if(element == 'day') {
+	window.data.current.day = data;
+    }
+    else if(element == 'headlines') {
+	[window.data.current.totalTime, window.data.current.headlines] = data;
+    }
+
+    if(window.data.current.calendar != null && window.data.current.daysCount != null
+       && window.data.current.day != null
+       && window.data.current.totalTime != null && window.data.current.headlines != null)
+	display(window.data.current.draw);
 }
 
 function draw(elements = ['day', 'headlines', 'calendar']) {
 
-    var averagePerDay = parseInt(document.getElementById('average-hours').value) * 60
-	+ parseInt(document.getElementById('average-minutes').value);
+    const config = window.data.current.config = collectConfig();
 
-    var dayPace = parseInt(document.getElementById('day-pace').value);
+    if(window.worker != null) {
+	window.data.current.draw = elements;
 
-    var displayWeekends = document.querySelector('#display-weekends').checked;
-    var weekendsAsBonus = document.querySelector('#weekends-as-bonus').checked;
+	if(elements.includes('calendar')) {
+	    window.worker.calendar.postMessage({config: config});
+	    window.data.current.calendar = null;
+	    window.data.current.daysCount = null;
+	}
 
-    var hasFirstGlanceWeekdays = document.querySelector('#first-glance-weekdays').checked;
-    var hasFirstGlanceMonths = document.querySelector('#first-glance-months').checked;
-    var hasFirstGlanceYears = document.querySelector('#first-glance-years').checked;
+	if(elements.includes('day')) {
+	    window.worker.day.postMessage({config: config});
+	    window.data.current.day = null;
+	}
 
-    var startingDate = window.startingDatePicker.getMoment().format('YYYY-MM-DD');
-    var endingDate = window.endingDatePicker.getMoment().format('YYYY-MM-DD');
-
-    window.data.current.filter = createSplittingFilter(startingDate, endingDate);
-
-    if(elements.includes('calendar')) {
-	window.data.current.calendar = computeCalendarDurations(window.data.headlines.data, window.data.selectedHeadlines, window.data.current.filter);
-
-	window.data.current.daysCount = extractDaysInfo(window.data.current.calendar);
+	if(elements.includes('headlines')) {
+	    window.worker.headlines.postMessage({config: config});
+	    window.data.current.totalTime = null;
+	    window.data.current.headlines = null;
+	}
     }
+    else {
+	if(elements.includes('calendar'))
+	    [window.data.current.calendar, window.data.current.daysCount] = computeCalendarDurations(window.data.headlines.data, config.filter);
 
-    if(elements.includes('day')) {
-	window.data.current.day = computeDayDurations(window.data.headlines.data, dayPace, window.data.selectedHeadlines, window.data.current.filter);
+	if(elements.includes('day'))
+	    window.data.current.day = computeDayDurations(window.data.headlines.data, window.data.current.config.dayPace, config.filter);
+
+	if(elements.includes('headlines'))
+	    [window.data.current.totalTime, window.data.current.headlines] = computeHeadlinesDurations(window.data.headlines.data, config.filter);
+
+	display(elements);
     }
+}
 
-    [window.data.current.totalTime, window.data.current.headlines] = computeHeadlinesDurations(window.data.headlines.data, window.data.selectedHeadlines, window.data.current.filter);
-
+function display(elements = ['day', 'headlines', 'calendar']) {
     console.log(window.data);
 
-    drawSelection(window.data.current.totalTime, displayWeekends ? window.data.current.daysCount.days : window.data.current.daysCount.weekdays, averagePerDay, displayWeekends ? window.data.current.daysCount.days - window.data.current.daysCount.weekdays : 0);
+    const config = window.data.current.config;
+
+    drawSelection(window.data.current.totalTime,
+		  window.config.displayWeekends ? window.data.current.daysCount.days : window.data.current.daysCount.weekdays,
+		  config.averagePerDay,
+		  config.displayWeekends ? window.data.current.daysCount.days - window.data.current.daysCount.weekdays : 0);
 
     if(elements.includes('day'))
-	drawDay(window.data.current.day, dayPace,
-		weekendsAsBonus ? window.data.current.daysCount.weekdays : window.data.current.daysCount.days,
+	drawDay(window.data.current.day, config.dayPace,
+		config.weekendsAsBonus ? window.data.current.daysCount.weekdays : window.data.current.daysCount.days,
 		window.data.current.totalTime,
 		window.color);
 
     if(elements.includes('headlines'))
-	drawHeadlines(window.data.current.headlines, window.data.current.totalTime, averagePerDay);
+	drawHeadlines(window.data.current.headlines, window.data.current.totalTime, config.averagePerDay);
 
     if(elements.includes('calendar'))
-	drawCalendar(window.data.current.calendar, averagePerDay,
-		     displayWeekends, weekendsAsBonus,
-		     hasFirstGlanceWeekdays, hasFirstGlanceMonths, hasFirstGlanceYears,
+	drawCalendar(window.data.current.calendar, config.averagePerDay,
+		     config.displayWeekends, config.weekendsAsBonus,
+		     config.hasFirstGlanceWeekdays, config.hasFirstGlanceMonths, config.hasFirstGlanceYears,
 		     window.color);
 }
 
@@ -596,7 +657,7 @@ function drawTags() {
 	  .data([null].concat(Array.from(window.data.tags).sort((lhs,rhs) => lhs[0] > rhs[0])))
 	  .join('g')
 	  .attr('transform', (_,i) => `translate(${i * width}, 0)`)
-	  .on('click', tag => drawWith(tag == null ? window.data.flipTags() : window.data.flipTag(tag)));
+	  .on('click', tag => drawAllWith(tag == null ? window.data.flipTags() : window.data.flipTag(tag)));
 
     tag.append('rect')
 	.attr('width', width).attr('height', height)
@@ -636,7 +697,7 @@ function drawBrowser(data, total, averagePerDay) {
 			   (window.data.foldedHeadlines.has(headline.id) ? "▸" : "▾")
 			   : (window.data.foldedHeadlines.has(headline.id) ? "▹" : "▿")))
 	.attr('class', "folder")
-	.on('click', headline => drawWith(window.data.foldHeadline(headline)));
+	.on('click', headline => drawWith(['headlines'], window.data.foldHeadline(headline)));
 
     text.append('tspan')
 	.attr('dx', 5)
@@ -646,7 +707,7 @@ function drawBrowser(data, total, averagePerDay) {
 	.attr('headline-id', ({id}) => id)
 	.attr('is-selected', ({id}) => window.data.selectedHeadlines.has(id))
 	.attr('is-habit', ({ishabit}) => ishabit ? "true" : "false")
-	.on('click', headline => drawWith(window.data.flipHeadline(headline)));
+	.on('click', headline => drawAllWith(window.data.flipHeadline(headline)));
 
     text.append('tspan')
 	.attr('dx', 10)
@@ -690,7 +751,7 @@ function drawBrowser(data, total, averagePerDay) {
 	.text("None")
 	.attr('class', "headline")
 	.attr('is-selected', window.data.selectedHeadlines.size == 0)
-	.on('click', _ => drawWith(window.data.flipHeadlines(false)));
+	.on('click', _ => drawAllWith(window.data.flipHeadlines(false)));
 
     none.insert('tspan')
 	.attr('dx', 10)
@@ -701,7 +762,7 @@ function drawBrowser(data, total, averagePerDay) {
 	.text("All")
 	.attr('class', "headline")
 	.attr('is-selected', window.data.selectedHeadlines.size == window.data.headlines.desc.length)
-	.on('click', _ => drawWith(window.data.flipHeadlines(true)));
+	.on('click', _ => drawAllWith(window.data.flipHeadlines(true)));
 
     none.insert('tspan')
 	.attr('dx', 10)

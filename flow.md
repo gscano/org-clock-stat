@@ -52,4 +52,18 @@
 * `defaultStep`: default time step
 * `startingDatePicker`: starting date selection
 * `endingDatePicker`: ending date selection
+* `worker`: hold `day`, `headlines` and `calendar` workers
 * `data`: raw, display and computed data
+
+# `data` object
+
+* `tagsCount`
+* `tags`
+* `tagsColor`
+* `headlines`
+  * `data`
+  * `desc`
+* `firstDate`
+* `lastDate`
+* `selectedHeadlines`
+* `foldedHeadlines`

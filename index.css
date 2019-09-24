@@ -108,6 +108,11 @@ body[visibility=soft]
     width: 40%;
 }
 
+#headlines .folder
+{
+    cursor: pointer;
+}
+
 #tags g,
 .headline
 {
@@ -127,11 +132,6 @@ body[visibility=soft]
 .headline[is-selected=false]
 {
     font-weight: normal;
-}
-
-.folder
-{
-    cursor: pointer;
 }
 
 .total

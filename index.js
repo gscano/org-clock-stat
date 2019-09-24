@@ -400,11 +400,11 @@ function parse(data) {
 	    data.tags.forEach(tag => entry.tags.add(tag));
     }
 
-    if(!entry.hasOwnProperty('effort') && data.hasOwnProperty('effort'))
-	entry.effort = data.effort;
+    if(!entry.hasOwnProperty('effort') && data.hasOwnProperty('effort') && 0 < data.effort.length)
+	entry.effort = moment.duration(data.effort).asMinutes();
 
-    if(!entry.hasOwnProperty('ishabit') && data.hasOwnProperty('ishabit'))
-	entry.ishabit = data.ishabit;
+    if(!entry.hasOwnProperty('ishabit') && data.hasOwnProperty('ishabit') && data.ishabit == 't')
+	entry.ishabit = true;
 
     const start = new Date(data.start);
     const end = new Date(data.end);
@@ -490,15 +490,12 @@ function drawAllWith() {
 
 function collectWorkThenDisplay(data, element) {
 
-    if(element == 'calendar') {
+    if(element == 'calendar')
 	[window.data.current.calendar, window.data.current.daysCount] = data;
-    }
-    else if(element == 'day') {
+    else if(element == 'day')
 	window.data.current.day = data;
-    }
-    else if(element == 'headlines') {
+    else if(element == 'headlines')
 	[window.data.current.totalTime, window.data.current.headlines] = data;
-    }
 
     if(window.data.current.calendar != null && window.data.current.daysCount != null
        && window.data.current.day != null
@@ -711,8 +708,52 @@ function drawBrowser(data, total, averagePerDay) {
 
     text.append('tspan')
 	.attr('dx', 10)
-	.text(({id}) => displayLongDuration(data[id].total))
+	.text(({id}) => displayLongDuration(data[id].total, averagePerDay))
 	.append('title').text(({id}) => data[id].percentage.toFixed(1) + "%");
+
+    const effort = g.filter(headline => headline.effort !== undefined && headline.effort != 0)
+	  .append('g')
+	  .attr('transform', `translate(150,5)`);
+
+    effort.append('title')
+	.text(headline => "Estimated effort: " + displayLongDuration(headline.effort)
+	      + " " + Math.floor(data[headline.id].total / headline.effort * 100) + "%");
+
+    const effortRadix = 20;
+    const gaugePointerWidth = 3;
+
+    effort.append('path')
+	.attr('d', "M 0 0 a 10 10 0 1 1 " + 2 * effortRadix + " 0")
+	.attr('fill', window.color);
+
+    effort.append('circle')
+	.attr('cx', effortRadix)
+	.attr('r', gaugePointerWidth)
+	.attr('fill', "white")
+
+    effort.append('path')
+	.attr('d', headline => {
+	    var x = effortRadix;
+	    var y = 0;
+	    var ratio = Math.PI / 180;
+
+	    if(data[headline.id].total < headline.effort) {
+		ratio *= 90 * (data[headline.id].total / headline.effort);
+
+		x += effortRadix * Math.cos(ratio);
+		y += effortRadix * Math.sin(ratio);
+	    }
+	    else {
+		ratio *= 75 * (Math.min(data[headline.id].total, 2 * headline.effort) / (2 * headline.effort));
+
+		x -= effortRadix * Math.sin(ratio);
+		y += effortRadix * Math.cos(ratio);
+	    }
+
+	    return  "M " + effortRadix + " 0 L " + x + " -" + y;
+	})
+	.attr('stroke', "white")
+	.attr('stroke-width', gaugePointerWidth);
 
     const xRadix = 15;
     const yRadix = 12;
@@ -724,7 +765,7 @@ function drawBrowser(data, total, averagePerDay) {
 
     const tags = g.filter(headline => 0 < headline.tags.size)
 	  .append('g')
-	  .attr('transform', `translate(300, -21)`)
+	  .attr('transform', `translate(300, -20)`)
 	  .selectAll('g')
 	  .data(headline => Array.from(headline.tags).sort((lhs, rhs) => lhs > rhs)
 		.map(tag => [window.data.selectedHeadlines.has(headline.id), tag]))

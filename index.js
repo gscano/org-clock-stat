@@ -1,9 +1,12 @@
 const tryUsingWorkers = true;
+const debugOn = true;
+const demoOn = true;
 
 window.onload = async function () {
 
     window.color = "green";
     window.defaultStep = 15;
+    window.toDraw = new Set();
 
     load('./license.html')
 	.then(content => {
@@ -64,12 +67,12 @@ window.onload = async function () {
 	window.worker = null;
     /* WORKERS */
 
-    /* DEMO AND TESTS ONLY */
-    if(true) {
+    /* DEMO */
+    if(demoOn) {
 	const projects = randomProjects({headlines:20,
 					 maxDepth: 4, maxChildren: 4,
 					 tagsProbability: 0.35, maxTags: 4,
-					 effortProbability: 0.25, maxEffort: 30 * 60,
+					 effortProbability: 0.25, maxEffort: 1000 * 60,
 					 isHabitProbability: 0.2});
 
 	const activityRandomizer = createActivityRandomizer({beforeWorkProbability: 0.005,
@@ -83,7 +86,7 @@ window.onload = async function () {
 
 	readData(data.join('\n'));
     }
-    /* DEMO AND TESTS ONLY */
+    /* DEMO */
 }
 
 function pickColor() {
@@ -438,7 +441,7 @@ function onToggleFirstGlance() {
 }
 
 function onAverageChange() {
-    draw(['headlines', 'calendar']);
+    draw(['selection', 'headlines', 'calendar']);
 }
 
 function onDayPaceChange() {
@@ -480,7 +483,7 @@ function collectConfig() {
     };
 }
 
-function drawWith(elements = ['day', 'headlines', 'calendar'], action = null) {
+function drawWith(elements = ['selection', 'day', 'headlines', 'calendar'], action = null) {
     draw(elements);
 }
 
@@ -488,33 +491,39 @@ function drawAllWith() {
     draw();
 }
 
-function collectWorkThenDisplay(data, element) {
+function collectWorkThenDisplay(data, worker) {
 
-    if(element == 'calendar')
-	[window.data.current.calendar, window.data.current.daysCount] = data;
-    else if(element == 'day')
+    if(worker == 'day')
 	window.data.current.day = data;
-    else if(element == 'headlines')
+    else if(worker == 'headlines')
 	[window.data.current.totalTime, window.data.current.headlines] = data;
+    else if(worker == 'calendar')
+	[window.data.current.calendar, window.data.current.daysCount] = data;
 
-    if(window.data.current.calendar != null && window.data.current.daysCount != null
-       && window.data.current.day != null
-       && window.data.current.totalTime != null && window.data.current.headlines != null)
-	display(window.data.current.draw);
+    var toDisplay = [];
+
+    if(window.data.current.daysCount != null && window.data.current.totalTime != null) {
+	toDisplay.push('selection')
+    }
+
+    if(window.data.current.day != null && window.data.current.daysCount != null && window.data.current.totalTime != null)
+	toDisplay.push('day');
+
+    if(worker == 'headlines' || worker == 'calendar')
+	toDisplay.push(worker);
+
+    if(0 < toDisplay.length) {
+	display(toDisplay);
+	toDisplay.forEach(display => window.toDraw.delete(display));
+    }
 }
 
-function draw(elements = ['day', 'headlines', 'calendar']) {
+function draw(elements = ['selection', 'day', 'headlines', 'calendar']) {
 
     const config = window.data.current.config = collectConfig();
 
     if(window.worker != null) {
-	window.data.current.draw = elements;
-
-	if(elements.includes('calendar')) {
-	    window.worker.calendar.postMessage({config: config});
-	    window.data.current.calendar = null;
-	    window.data.current.daysCount = null;
-	}
+	elements.forEach(element => window.toDraw.add(element));
 
 	if(elements.includes('day')) {
 	    window.worker.day.postMessage({config: config});
@@ -526,30 +535,37 @@ function draw(elements = ['day', 'headlines', 'calendar']) {
 	    window.data.current.totalTime = null;
 	    window.data.current.headlines = null;
 	}
+
+	if(elements.includes('calendar')) {
+	    window.worker.calendar.postMessage({config: config});
+	    window.data.current.calendar = null;
+	    window.data.current.daysCount = null;
+	}
     }
     else {
-	if(elements.includes('calendar'))
-	    [window.data.current.calendar, window.data.current.daysCount] = computeCalendarDurations(window.data.headlines.data, config.filter);
-
 	if(elements.includes('day'))
 	    window.data.current.day = computeDayDurations(window.data.headlines.data, window.data.current.config.dayPace, config.filter);
 
 	if(elements.includes('headlines'))
 	    [window.data.current.totalTime, window.data.current.headlines] = computeHeadlinesDurations(window.data.headlines.data, config.filter);
 
+	if(elements.includes('calendar'))
+	    [window.data.current.calendar, window.data.current.daysCount] = computeCalendarDurations(window.data.headlines.data, config.filter);
+
 	display(elements);
     }
 }
 
-function display(elements = ['day', 'headlines', 'calendar']) {
-    console.log(window.data);
+function display(elements = ['selection', 'day', 'headlines', 'calendar']) {
+    if(debugOn) console.log(window.data);
 
     const config = window.data.current.config;
 
-    drawSelection(window.data.current.totalTime,
-		  window.config.displayWeekends ? window.data.current.daysCount.days : window.data.current.daysCount.weekdays,
-		  config.averagePerDay,
-		  config.displayWeekends ? window.data.current.daysCount.days - window.data.current.daysCount.weekdays : 0);
+    if(elements.includes('selection'))
+	drawSelection(window.data.current.totalTime,
+		      window.config.displayWeekends ? window.data.current.daysCount.days : window.data.current.daysCount.weekdays,
+		      config.averagePerDay,
+		      config.displayWeekends ? window.data.current.daysCount.days - window.data.current.daysCount.weekdays : 0);
 
     if(elements.includes('day'))
 	drawDay(window.data.current.day, config.dayPace,
@@ -716,7 +732,7 @@ function drawBrowser(data, total, averagePerDay) {
 	  .attr('transform', `translate(150,5)`);
 
     effort.append('title')
-	.text(headline => "Estimated effort: " + displayLongDuration(headline.effort)
+	.text(headline => "Estimated effort: " + displayLongDuration(headline.effort, averagePerDay)
 	      + " " + Math.floor(data[headline.id].total / headline.effort * 100) + "%");
 
     const effortRadix = 20;

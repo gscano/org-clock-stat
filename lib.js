@@ -188,9 +188,9 @@ function extractDaysInterval(start_, end_, minutes, result) {
 }
 
 // [{start:Date,end:Date}] => [Integer]
-function reduceInterval(entries, minutes, result = Array(Math.ceil(24 * 60 / minutes)).fill(0)) {
+function reduceInterval(entries, pace, result = Array(Math.ceil(24 * 60 / pace)).fill(0)) {
     return entries.reduce((result, {start: start, end: end}) =>
-			  extractDaysInterval(start, end, minutes, result),
+			  extractDaysInterval(start, end, pace, result),
 			  result);
 }
 

@@ -502,9 +502,8 @@ function collectWorkThenDisplay(data, worker) {
 
     var toDisplay = [];
 
-    if(window.data.current.daysCount != null && window.data.current.totalTime != null) {
+    if(window.data.current.daysCount != null && window.data.current.totalTime != null)
 	toDisplay.push('selection')
-    }
 
     if(window.data.current.day != null && window.data.current.daysCount != null && window.data.current.totalTime != null)
 	toDisplay.push('day');
@@ -557,13 +556,14 @@ function draw(elements = ['selection', 'day', 'headlines', 'calendar']) {
 }
 
 function display(elements = ['selection', 'day', 'headlines', 'calendar']) {
+    if(debugOn) console.log(elements.join(' '));
     if(debugOn) console.log(window.data);
 
     const config = window.data.current.config;
 
     if(elements.includes('selection'))
 	drawSelection(window.data.current.totalTime,
-		      window.config.displayWeekends ? window.data.current.daysCount.days : window.data.current.daysCount.weekdays,
+		      config.displayWeekends ? window.data.current.daysCount.days : window.data.current.daysCount.weekdays,
 		      config.averagePerDay,
 		      config.displayWeekends ? window.data.current.daysCount.days - window.data.current.daysCount.weekdays : 0);
 
@@ -584,10 +584,8 @@ function display(elements = ['selection', 'day', 'headlines', 'calendar']) {
 }
 
 function drawSelection(totalTime, days, averagePerDay, weekends) {
-    const percentage = Math.floor(totalTime / days / averagePerDay * 100);
-
-    d3.select('span#days').text(days).attr('title', weekends + " weekend days (" + Math.floor(weekends / (days + weekends) * 100).toFixed(0) + "%)");
-    d3.select('span#hours').text(displayDuration(Math.floor(totalTime / days))).attr('title', percentage.toFixed(0) + "% of the targeted average");
+    d3.select('#days').text(days).attr('title', "including " + weekends + " weekend days (" + Math.floor(weekends / (days + weekends) * 100).toFixed(0) + "%)");
+    d3.select('#hours').text(displayDuration(Math.floor(totalTime / days))).attr('title', Math.floor(totalTime / days / averagePerDay * 100).toFixed(0) + "% of the targeted average");
 
     document.getElementById('days' ).style.color = window.color;
     document.getElementById('hours').style.color = window.color;

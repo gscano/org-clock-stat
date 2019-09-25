@@ -5,9 +5,8 @@ var data;
 
 onmessage = function(event) {
 
-    if(event.data.hasOwnProperty('data')) {
+    if(event.data.hasOwnProperty('data'))
 	data = event.data.data;
-    }
 
     if(event.data.hasOwnProperty('config')) {
 	const config = event.data.config;

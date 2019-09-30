@@ -20,14 +20,25 @@ function flattenHeadline({desc, data}, task) {
 }
 
 // Date => Date => Date => String[year month week isoWeek day] => ({start:Date, end:Date} => [{start:Date, end:Date}])
-function createSplittingFilter(from, to, specific = null, moment_ = 'date') {
-    from = moment(from);
-    to = moment(to);
-    specific = specific == null ? null : moment(specific);
+function createSplittingFilter(config, alwaysCountWeekends = false) {
+    const from = moment(config.startingDate);
+    const to = moment(config.endingDate);
+    const countWeekends = alwaysCountWeekends || config.hasOwnProperty('countWeekends') ? config.countWeekends : false;
+    const days = config.hasOwnProperty('days') ? config.days : new Set();
 
     if(to.hours() == 0 && to.minutes() == 0) to.add(1, 'days').startOf('day');
 
     const format = 'YYYY-MM-DD HH:mm';
+
+    function pass(date) {
+	if(!countWeekends && 6 <= date.isoWeekday())
+	    return [false, 8 - date.isoWeekday(), 'days'];
+
+	//if(0 < days.size && !days.has(date.format('YYYY-MM-DD')))
+	//  return [false, 1, 'days'];
+
+	return [true, 1, 'days'];
+    }
 
     // {start:Date, end:Date} => [{start:Date, end:Date}]
     return function ({start, end}) {
@@ -38,31 +49,47 @@ function createSplittingFilter(from, to, specific = null, moment_ = 'date') {
 
 	if(start.isAfter(to) || end.isBefore(from)) return result;
 
-	result.push({start,end});
+	start = moment.max(start, from);
+	end = moment.min(end, to);
+
+	var recording = false;
+	var current = start.clone();
+	var isFirst = true;
+
+	do {
+	    const d = pass(current);
+
+	    //console.log(current.format(format) + " " + recording + " " + d)
+
+	    if(!recording && d[0]) {
+		//console.log("recording")
+		start = current.clone();
+		if(!isFirst) start.startOf('day');
+		recording = true;
+	    }
+	    else if(recording && !d[0]) {
+		//console.log("registering")
+		result.push({ start: start.format(format),
+			      end: current.clone().startOf('day').format(format) });
+		recording = false;
+	    }
+
+	    current.add(d[1], d[2]);
+	    isFirst = false;
+	}
+	while(current.isBefore(end));
+
+	if(recording)
+	    result.push({ start: start.format(format), end: end.format(format) });
+	else {
+	    current.startOf('day');
+	    const d = pass(current);
+	    if(d[0] && current.isBefore(end)) {
+		result.push({ start: current.format(format), end: end.format(format) });
+	    }
+	}
 
 	return result;
-
-	// start = moment.max(start, from);
-	// end = moment.min(end, to);
-
-	// var current = moment.min(start.clone().add(1, 'days').startOf('day'), end);
-
-	// if(specific == null || (specific != null && start.isSame(specific, moment_)))
-	//     result.push({start: start.format(format), end: current.format(format)});
-
-	// while(!current.isSame(end, 'day')) {
-	//     if(specific == null || (specific != null && current.isSame(specific, moment_)))
-	//	result.push({start: current.format(format),
-	//		     end: current.add(1, 'days').format(format)});
-	//     else
-	//	current.add(1, 'days');
-	// }
-
-	// if(!current.isSame(end)
-	//    && specific == null || (specific != null && end.isSame(specific, moment_)))
-	//     result.push({start: current.format(format), end: end.format(format)});
-
-	// return result;
     }
 }
 
@@ -130,7 +157,7 @@ function extractDaysInfo(data) {
 // => [{date: Date, duration: Int}]
 function computeCalendarDurations(headlines, filter) {
 
-    const filterFunc = createSplittingFilter(filter.startingDate, filter.endingDate);
+    const filterFunc = createSplittingFilter(filter, true);
 
     const map = headlines.reduce((days, {entries}, id) =>
 			       filter.headlines.has(id) ?
@@ -196,7 +223,7 @@ function reduceInterval(entries, pace, result = Array(Math.ceil(24 * 60 / pace))
 
 function computeDayDurations(headlines, pace, filter) {
 
-    const filterFunc = createSplittingFilter(filter.startingDate, filter.endingDate);
+    const filterFunc = createSplittingFilter(filter);
 
     return headlines.reduce((intervals,{entries},id) =>
 			    filter.headlines.has(id) ?
@@ -214,7 +241,7 @@ function computeHeadlinesDurations(headlines, filter) {
     var result = Array(headlines.length).fill().map(_ => ({total: 0, percentage: 0}));
     var total_ = 0;
 
-    const filterFunc = createSplittingFilter(filter.startingDate, filter.endingDate);
+    const filterFunc = createSplittingFilter(filter);
 
     headlines.forEach((headline, id) => {
 	if(filter.headlines.has(id)) {

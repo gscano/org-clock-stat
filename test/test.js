@@ -14,23 +14,73 @@ function verify(lhs, rhs) {
     assert.deepEqual(lhs, rhs);
 }
 
+/* FILTER & SPLIT */
+function raw(start, end) { return {start: start, end: end}; }
+
+var filter = createSplittingFilter({ startingDate: "2019-08-15", endingDate: "2019-08-21",
+				     countWeekends: true });
+
+verify(filter(raw("2019-08-15 13:15", "2019-08-21 11:14")),
+       [raw("2019-08-15 13:15", "2019-08-21 11:14")]);
+
+verify(filter(raw("2019-08-14 13:15", "2019-08-21 11:14")),
+       [raw("2019-08-15 00:00", "2019-08-21 11:14")]);
+
+verify(filter(raw("2019-08-15 13:15", "2019-08-22 11:14")),
+       [raw("2019-08-15 13:15", "2019-08-22 00:00")]);
+
+verify(filter(raw("2019-08-14 13:15", "2019-08-22 11:14")),
+       [raw("2019-08-15 00:00", "2019-08-22 00:00")]);
+
+var filter = createSplittingFilter({ startingDate: "2019-08-15", endingDate: "2019-08-21",
+				     countWeekends: false });
+
+verify(filter(raw("2019-08-15 13:15", "2019-08-21 11:14")),
+       [raw("2019-08-15 13:15", "2019-08-17 00:00"),
+	raw("2019-08-19 00:00", "2019-08-21 11:14")]);
+
+verify(filter(raw("2019-08-14 13:15", "2019-08-21 11:14")),
+       [raw("2019-08-15 00:00", "2019-08-17 00:00"),
+	raw("2019-08-19 00:00", "2019-08-21 11:14")]);
+
+verify(filter(raw("2019-08-15 13:15", "2019-08-22 11:14")),
+       [raw("2019-08-15 13:15", "2019-08-17 00:00"),
+	raw("2019-08-19 00:00", "2019-08-22 00:00")]);
+
+verify(filter(raw("2019-08-14 13:15", "2019-08-22 11:14")),
+       [raw("2019-08-15 00:00", "2019-08-17 00:00"),
+	raw("2019-08-19 00:00", "2019-08-22 00:00")]);
+
+// var filter = createSplittingFilter({ startingDate: "2019-08-15", endingDate: "2019-08-21",
+//				     days: new Set(["2019-08-16", "2019-08-18"]),
+//				     countWeekends: true });
+
+// verify(filter(raw("2019-08-15 13:15", "2019-08-21 11:14")),
+//        [raw("2019-08-16 00:00", "2019-08-17 00:00"),
+//	raw("2019-08-18 00:00", "2019-08-19 00:00")]);
+
+// verify(filter(raw("2019-08-16 13:15", "2019-08-21 11:14")),
+//        [raw("2019-08-16 13:15", "2019-08-17 00:00"),
+//	raw("2019-08-18 00:00", "2019-08-19 00:00")]);
+
+// verify(filter(raw("2019-08-15 13:15", "2019-08-18 11:14")),
+//        [raw("2019-08-16 00:00", "2019-08-17 00:00"),
+//	raw("2019-08-18 00:00", "2019-08-18 11:14")]);
+
+// verify(filter(raw("2019-08-16 13:15", "2019-08-18 11:14")),
+//        [raw("2019-08-16 13:15", "2019-08-17 00:00"),
+//	raw("2019-08-18 00:00", "2019-08-18 11:14")]);
+
+// var filter = createSplittingFilter({ startingDate: "2019-08-15", endingDate: "2019-08-21",
+//				     days: new Set(["2019-08-16", "2019-08-17"]),
+//				     countWeekends: true });
+
+/* FILTER & SPLIT */
+
 const d1 = "2019-08-09 19:25";
 const d2 = "2019-08-09 20:33";
 const d3 = "2019-08-10 02:12";
 const d4 = "2019-08-11 23:41";
-
-/* FILTER & SPLIT */
-// function raw(start, end) { return {start: start, end: end}; }
-
-// var filter = createSplittingFilter("2019-08-09", "2019-08-09");
-// verify(filter(raw(d1, d2)), [raw(d1, d2)]);
-// var filter = createSplittingFilter("2019-08-09", "2019-08-10");
-// verify(filter(raw(d1, d2)), [raw(d1, d2)]);
-// verify(filter(raw(d2, d3)), [raw(d2, "2019-08-10 00:00"), raw("2019-08-10 00:00", d3)]);
-// verify(filter(raw(d2, d4)), [raw(d2, "2019-08-10 00:00"), raw("2019-08-10 00:00", "2019-08-11 00:00")])
-// var filter = createSplittingFilter("2019-08-09", "2019-08-10", "2019-08-09");
-// verify(filter(raw(d2, d4)), [raw(d2, "2019-08-10 00:00")]);
-/* FILTER & SPLIT */
 
 /* DURATION */
 function make(date, duration) { return [new Date(date), moment.duration(duration).asMinutes()]; }
@@ -47,11 +97,13 @@ function reduced(date, duration) { return {date: new Date(date),
 
 function duration(start,end) { return {start:start, end:end}; }
 
-verify(reduceDuration([duration(d1,d2),duration(d3,d4)]),
+verify(Array.from(reduceDuration([duration(d1,d2),duration(d3,d4)]))
+       .map(([date, duration]) => ({date: new Date(date), duration: duration})),
        [reduced("2019-08-09", "01:08"),
 	reduced("2019-08-10", "21:48"),
 	reduced("2019-08-11", "23:41")]);
-verify(reduceDuration([duration(d1,d2), duration(d2,d3), duration(d3,d4)]),
+verify(Array.from(reduceDuration([duration(d1,d2), duration(d2,d3), duration(d3,d4)]))
+       .map(([date, duration]) => ({date: new Date(date), duration: duration})),
        [reduced("2019-08-09", "04:35"),
 	reduced("2019-08-10", "24:00"),
 	reduced("2019-08-11", "23:41")]);

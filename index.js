@@ -488,9 +488,7 @@ function collectConfig() {
 	    startingDate: window.startingDatePicker.getMoment().format('YYYY-MM-DD'),
 	    endingDate: window.endingDatePicker.getMoment().format('YYYY-MM-DD'),
 	    headlines: window.data.selectedHeadlines,
-	    countWeekends: displayWeekends || weekendsAsBonus,
-	    datePeriods: new Set(),
-	    days: new Set()
+	    countWeekends: displayWeekends || weekendsAsBonus
 	}
     };
 }
@@ -575,15 +573,14 @@ function display(elements = ['selection', 'day', 'headlines', 'calendar']) {
 
     if(elements.includes('selection'))
 	drawSelection(window.data.current.totalTime,
-		      config.displayWeekends ? window.data.current.daysCount.days : window.data.current.daysCount.weekdays,
 		      config.averagePerDay,
+		      config.displayWeekends ? window.data.current.daysCount.days : window.data.current.daysCount.weekdays,
 		      config.displayWeekends ? window.data.current.daysCount.days - window.data.current.daysCount.weekdays : 0);
 
     if(elements.includes('day'))
 	drawDay(window.data.current.day, config.dayPace,
 		config.displayWeekends ? window.data.current.daysCount.days : window.data.current.daysCount.weekdays,
-		window.data.current.totalTime,
-		window.color);
+		window.data.current.totalTime);
 
     if(elements.includes('headlines'))
 	drawHeadlines(window.data.current.headlines, window.data.current.totalTime, config.averagePerDay);
@@ -595,7 +592,7 @@ function display(elements = ['selection', 'day', 'headlines', 'calendar']) {
 		     window.color);
 }
 
-function drawSelection(totalTime, days, averagePerDay, weekends) {
+function drawSelection(totalTime, averagePerDay, days, weekends) {
     d3.select('#days').text(days).attr('title', "including " + weekends + " weekend days (" + Math.floor(weekends / (days + weekends) * 100).toFixed(0) + "%)");
     d3.select('#hours').text(displayDuration(Math.floor(totalTime / days))).attr('title', Math.floor(totalTime / days / averagePerDay * 100).toFixed(0) + "% of the targeted average");
 
@@ -603,7 +600,7 @@ function drawSelection(totalTime, days, averagePerDay, weekends) {
     document.getElementById('hours').style.color = window.color;
 }
 
-function drawDay(data, dayPace, numberOfDays, totalTime, color) {
+function drawDay(data, dayPace, numberOfDays, totalTime) {
     document.getElementById('day').innerHTML = '';
 
     var sameMinuteDeviation = d3.sum(data) - totalTime;
@@ -614,7 +611,7 @@ function drawDay(data, dayPace, numberOfDays, totalTime, color) {
 
     const interSize = 1;
 
-    const palette = d3.scaleLinear().domain([0, dayPace]).range(['white', color]);
+    const palette = d3.scaleLinear().domain([0, dayPace]).range(['white', window.color]);
 
     const day = d3.select('div#day').append('svg');
 
@@ -622,24 +619,23 @@ function drawDay(data, dayPace, numberOfDays, totalTime, color) {
 	.attr('height', 40 + cellSize)
 	.attr('transform', `translate(0,5)`);
 
-    const days = day.append('g');
-
     const shift = 2;
 
     day.append('g').selectAll('rect')
 	.data(data)
 	.join('rect')
 	.attr('width', cellSize).attr('height', cellSize)
-	.attr('transform', (_,i) => `translate(${shift + i * (cellSize + interSize) + 20}, 0)`)
+	.attr('transform', (_, i) => `translate(${shift + i * (cellSize + interSize) + 20}, 0)`)
 	.attr('fill', duration => palette(Math.min(dayPace, Math.floor(duration / numberOfDays))))
 	.append('title')
-	.text((duration,i) => {
-	    const value = Math.min(dayPace, Math.floor(duration/numberOfDays));
+	.text((duration, i) => {
+	    const value = Math.min(dayPace, Math.floor(duration / numberOfDays));
+	    const lastDayPace = 24 * 60 % dayPace;
 
-	    return displayMinutesAsHour(i * dayPace) + "-"
-		+ displayMinutesAsHour(i == data.length - 1 ? 0 : (i + 1) * dayPace) + " "
-		+ displayLongDuration(value) + " "
-		+ Math.floor(value / (i == data.length - 1 ? 24 * 60 % dayPace : dayPace) * 100) + "%";
+	    return displayDuration(i * dayPace) + "-"
+		+ displayDuration(i == data.length - 1 ? 0 : (i + 1) * dayPace) + " "
+		+ displayDuration(value) + " "
+		+ Math.floor((i == data.length - 1 && lastDayPace != 0 ? value / lastDayPace : value / dayPace) * 100).toFixed(0) + "%";
 	});
 
     const hours = [...Array(25).keys()].filter(index => dayPace <= 20 ? true : index % Math.ceil(4 * dayPace / 60) == 0);
@@ -657,7 +653,7 @@ function drawDay(data, dayPace, numberOfDays, totalTime, color) {
 	.selectAll('text')
 	.data(hours)
 	.join('text')
-	.attr('transform', i => `translate(${shift + (i == 24 ? data.length : i * 60 /dayPace) * (cellSize + interSize) - 3}, 40)`)
+	.attr('transform', i => `translate(${shift + (i == 24 ? data.length : i * 60 / dayPace) * (cellSize + interSize) - 3}, 40)`)
 	.text(hours => moment().startOf('day').hours(hours).format('HH:mm'));
 }
 
@@ -837,7 +833,7 @@ function drawBrowser(data, total, averagePerDay) {
 
     none.insert('tspan')
 	.attr('dx', 10)
-	.text(displayLongDuration(total));
+	.text(displayLongDuration(total, averagePerDay));
 }
 
 function drawCalendar(data, averagePerDay,
@@ -850,23 +846,36 @@ function drawCalendar(data, averagePerDay,
     const monthFormat = 'MMM';
 
     const isWeekday = day => day != 6 && day != 7;
-    const dayFilter = day => displayWeekends ? true : isWeekday(day);
 
-    const weekdaysShift = day => displayWeekends ? 0 : weekdayShift(day);
+    var dayFilter;
+    var weekdaysShift;
+    if(displayWeekends) {
+	dayFilter = day => true;
+	weekdaysShift = day => 0;
+    }
+    else {
+	dayFilter = day => isWeekday(day);
+	weekdaysShift = day => weekdayShift(day);
+    }
 
     const cellSize = 16;
     const textScale = 1.5;
     const interMonthSpace = 0.5;
     const interDaySpace = 1;
 
-    const sumDay = ({date:date, duration:duration}) => (displayWeekends || weekendsAsBonus) ? duration : (isWeekday(moment(date).isoWeekday()) ? duration : 0);
+    var sumDay;
+    if(displayWeekends || weekendsAsBonus)
+	sumDay = ({duration}) => duration;
+    else
+	sumDay = ({date, duration}) => isWeekday(moment(date).isoWeekday()) ? duration : 0;
+
     const countDays = days => days.reduce((accu, day) => accu + dayFilter(moment(day.date).isoWeekday()), 0);
 
     const palette = d3.scaleLinear().domain([0,averagePerDay]).range(['white', color]);
 
     const totOverDay = days => d3.sum(days, day => sumDay(day));
     const meanPerDay = days => d3.sum(days, day => sumDay(day)) / countDays(days);
-    const sigmForDay = days => d3.deviation(days, day => sumDay(day));
+    const sigmForDay = days => days.length < 2 ? 0 : d3.deviation(days, day => sumDay(day));
 
     function ellipseRadix(days, radix, max) {
 	const sigma = sigmForDay(days);
@@ -881,10 +890,8 @@ function drawCalendar(data, averagePerDay,
 	    + "  σ " + displayDuration(sigmForDay(days).toFixed(0));
     }
 
-    //Data
     const years = d3.nest().key(d => moment(d.date).year()).entries(data).reverse();
 
-    //Drawings
     const svg = d3.selectAll('div#calendar').append('svg');
 
     svg.attr('width', 200 + 54 * (cellSize + interDaySpace) + 12 * interMonthSpace)

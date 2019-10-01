@@ -19,12 +19,11 @@ function flattenHeadline({desc, data}, task) {
     return task.subentries.reduce(flattenHeadline, {desc, data});
 }
 
-// Date => Date => Date => String[year month week isoWeek day] => ({start:Date, end:Date} => [{start:Date, end:Date}])
+// {startingDate: Date, endingDate: Date, countWeekends: Bool} => Bool => ({start:Date, end:Date} => [{start:Date, end:Date}])
 function createSplittingFilter(config, alwaysCountWeekends = false) {
     const from = moment(config.startingDate);
     const to = moment(config.endingDate);
     const countWeekends = alwaysCountWeekends || config.hasOwnProperty('countWeekends') ? config.countWeekends : false;
-    const days = config.hasOwnProperty('days') ? config.days : new Set();
 
     if(to.hours() == 0 && to.minutes() == 0) to.add(1, 'days').startOf('day');
 
@@ -33,9 +32,6 @@ function createSplittingFilter(config, alwaysCountWeekends = false) {
     function pass(date) {
 	if(!countWeekends && 6 <= date.isoWeekday())
 	    return [false, 8 - date.isoWeekday(), 'days'];
-
-	//if(0 < days.size && !days.has(date.format('YYYY-MM-DD')))
-	//  return [false, 1, 'days'];
 
 	return [true, 1, 'days'];
     }
@@ -59,16 +55,12 @@ function createSplittingFilter(config, alwaysCountWeekends = false) {
 	do {
 	    const d = pass(current);
 
-	    //console.log(current.format(format) + " " + recording + " " + d)
-
 	    if(!recording && d[0]) {
-		//console.log("recording")
 		start = current.clone();
 		if(!isFirst) start.startOf('day');
 		recording = true;
 	    }
 	    else if(recording && !d[0]) {
-		//console.log("registering")
 		result.push({ start: start.format(format),
 			      end: current.clone().startOf('day').format(format) });
 		recording = false;
@@ -143,7 +135,7 @@ function reduceDuration(entries, result = new Map()) {
     return entries.reduce(reduce, result);
 }
 
-// [{date: Date}] => {'days': Integer, 'weekdays': Integer}
+// [{date: Date}] => {'days': Int, 'weekdays': Int}
 function extractDaysInfo(data) {
     return data.reduce((accu, {date}) => {
 	accu.days += 1;
@@ -173,7 +165,7 @@ function computeCalendarDurations(headlines, filter) {
     return [calendar, daysCount];
 }
 
-// Date => Date => Integer => [Integer]
+// Date => Date => Int => [Int]
 function extractDaysInterval(start_, end_, minutes, result) {
 
     const start = moment(start_);
@@ -214,7 +206,7 @@ function extractDaysInterval(start_, end_, minutes, result) {
     return result;
 }
 
-// [{start:Date,end:Date}] => [Integer]
+// [{start: Date, end: Date}] => Int => [Int]
 function reduceInterval(entries, pace, result = Array(Math.ceil(24 * 60 / pace)).fill(0)) {
     return entries.reduce((result, {start: start, end: end}) =>
 			  extractDaysInterval(start, end, pace, result),
@@ -269,28 +261,18 @@ function computeHeadlinesDurations(headlines, filter) {
     return [total_, result];
 }
 
-// Integer => String([0-9][0-9])
+// Int => String([0-9][0-9])
 function displayTwoDigits(number) {
     return (number < 10 ? "0" : "") + number;
 }
 
-function displayMinutesAsHour(minutes) {
-    return moment().startOf('day').minutes(minutes).format('HH:mm')
-}
-
-// Integer => String([0-2][0-9]:[0-5][0-9])
+// Int => String([0-2][0-9]:[0-5][0-9])
 function displayDuration(minutes, sep = ':') {
     return displayTwoDigits(Math.floor(minutes / 60)) + sep + displayTwoDigits(minutes % 60);
 }
 
-function splitDuration(minutes, minutesOfDay = 24 * 60) {
-    return {days: Math.floor(minutes / minutesOfDay),
-	    hours: Math.floor((minutes % minutesOfDay) / 60),
-	    minutes: (minutes % minutesOfDay) % 60};
-}
-
 // Interger => String
-function displayLongDuration(minutes, minutesOfDay = 24 * 60) {
+function displayLongDuration(minutes, minutesOfDay) {
     var result = "";
 
     const days = Math.floor(minutes / minutesOfDay);
@@ -300,7 +282,7 @@ function displayLongDuration(minutes, minutesOfDay = 24 * 60) {
     return result + displayDuration(minutes % minutesOfDay);
 }
 
-// Integer => Integer
+// Int => Int
 function weekdayShift(weekday) {
     const firstIsoWeekday = moment().isoWeekday(moment.weekdays(true)[0]).isoWeekday();
 

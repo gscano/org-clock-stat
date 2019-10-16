@@ -314,7 +314,7 @@ function stringToColor(str) {
     G = G % 255;
     B = B % 255;
 
-    return `rgb(${R}, ${G}, ${B})`;
+    return `rgb(${R},${G},${B})`;
 }
 
 // String => Promise

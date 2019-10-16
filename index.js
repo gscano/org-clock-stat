@@ -1,5 +1,5 @@
 const tryUsingWorkers = true;
-const debugOn = true;
+const debugOn = false;
 const demoOn = true;
 
 window.onload = async function () {
@@ -7,6 +7,7 @@ window.onload = async function () {
     window.color = "green";
     window.defaultDayPace = 15;
     window.toDraw = new Set();
+    window.maxPerDay = 10 * 60;
 
     load('./license.html')
 	.then(content => {
@@ -625,7 +626,7 @@ function drawDay(data, dayPace, numberOfDays, totalTime) {
 	.data(data)
 	.join('rect')
 	.attr('width', cellSize).attr('height', cellSize)
-	.attr('transform', (_, i) => `translate(${shift + i * (cellSize + interSize) + 20}, 0)`)
+	.attr('transform', (_, i) => `translate(${shift + i * (cellSize + interSize) + 20},0)`)
 	.attr('fill', duration => palette(Math.min(dayPace, Math.floor(duration / numberOfDays))))
 	.append('title')
 	.text((duration, i) => {
@@ -644,7 +645,7 @@ function drawDay(data, dayPace, numberOfDays, totalTime) {
 	.selectAll('line')
 	.data(hours)
 	.join('line')
-	.attr('transform', i => `translate(${shift + (i == 24 ? data.length : i * 60 / dayPace) * (cellSize + interSize) + 20}, 30)`)
+	.attr('transform', i => `translate(${shift + (i == 24 ? data.length : i * 60 / dayPace) * (cellSize + interSize) + 20},30)`)
 	.attr('stroke', "black")
 	.attr('x1', 0).attr('x2', 0)
 	.attr('y1', 0).attr('y2', -10);
@@ -653,7 +654,7 @@ function drawDay(data, dayPace, numberOfDays, totalTime) {
 	.selectAll('text')
 	.data(hours)
 	.join('text')
-	.attr('transform', i => `translate(${shift + (i == 24 ? data.length : i * 60 / dayPace) * (cellSize + interSize) - 3}, 40)`)
+	.attr('transform', i => `translate(${shift + (i == 24 ? data.length : i * 60 / dayPace) * (cellSize + interSize) - 3},40)`)
 	.text(hours => moment().startOf('day').hours(hours).format('HH:mm'));
 }
 
@@ -679,7 +680,7 @@ function drawTags() {
     const tag = svg.selectAll('g')
 	  .data([null].concat(Array.from(window.data.tags.list).sort((lhs,rhs) => lhs[0] > rhs[0])))
 	  .join('g')
-	  .attr('transform', (_,i) => `translate(${i * width}, 0)`)
+	  .attr('transform', (_, i) => `translate(${i * width},0)`)
 	  .on('click', tag => drawAllWith(tag == null ? window.data.flipTags() : window.data.flipTag(tag)));
 
     tag.append('rect')
@@ -688,7 +689,7 @@ function drawTags() {
 	.attr('fill', tag => window.data.getBackgroundColorOf(tag));
 
     tag.append('text')
-	.attr('transform', `translate(${width / 2}, 20)`)
+	.attr('transform', `translate(${width / 2},20)`)
 	.text(tag => tag == null ? 'None' : tag.slice(0, characters))
 	.attr('text-anchor', "middle")
 	.attr('fill', tag => window.data.getColorOf(tag));
@@ -742,8 +743,7 @@ function drawBrowser(data, total, averagePerDay) {
 	  .attr('transform', `translate(150,5)`);
 
     effort.append('title')
-	.text(headline => "Estimated effort: " + displayLongDuration(headline.effort, averagePerDay)
-	      + " " + Math.floor(data[headline.id].total / headline.effort * 100) + "%");
+	.text(headline => Math.floor(data[headline.id].total / headline.effort * 100) + "% of the estimated " + displayLongDuration(headline.effort, averagePerDay) + " effort");
 
     const effortRadix = 20;
     const gaugePointerWidth = 3;
@@ -791,20 +791,20 @@ function drawBrowser(data, total, averagePerDay) {
 
     const tags = g.filter(headline => 0 < headline.tags.size)
 	  .append('g')
-	  .attr('transform', `translate(300, -20)`)
+	  .attr('transform', `translate(300,-20)`)
 	  .selectAll('g')
 	  .data(headline => Array.from(headline.tags).sort((lhs, rhs) => lhs > rhs)
 		.map(tag => [window.data.selectedHeadlines.has(headline.id), tag]))
 	  .enter();
 
     tags.append('rect')
-	.attr('transform', (_, i) => `translate(${i * width}, 0)`)
+	.attr('transform', (_, i) => `translate(${i * width},0)`)
 	.attr('width', width).attr('height', height)
 	.attr('ry', xRadix).attr('rx', yRadix)
 	.attr('fill', ([selected, tag]) => window.data.getBackgroundColorOf(tag, selected));
 
     tags.append('text')
-	.attr('transform', (_, i) => `translate(${i * width + width / 2}, 20)`)
+	.attr('transform', (_, i) => `translate(${i * width + width / 2},20)`)
 	.text(([_,tag]) => tag)
 	.attr('text-anchor', "middle")
 	.attr('fill', ([selected, tag]) => window.data.getColorOf(tag, selected));
@@ -871,7 +871,7 @@ function drawCalendar(data, averagePerDay,
 
     const countDays = days => days.reduce((accu, day) => accu + dayFilter(moment(day.date).isoWeekday()), 0);
 
-    const palette = d3.scaleLinear().domain([0,averagePerDay]).range(['white', color]);
+    const palette = d3.scaleLinear().domain([0, averagePerDay, averagePerDay + window.maxPerDay]).range(['white', color, 'black']);
 
     const totOverDay = days => d3.sum(days, day => sumDay(day));
     const meanPerDay = days => d3.sum(days, day => sumDay(day)) / countDays(days);
@@ -882,7 +882,7 @@ function drawCalendar(data, averagePerDay,
 
 	if(sigma === undefined || sigma == 0) return radix;
 
-	return Math.max(radix, Math.min(radix + sigma / meanPerDay(days) * radix , max));
+	return Math.max(radix, Math.min(radix * (1 + sigma / meanPerDay(days)), max));
     }
 
     function ellipseTitle(days) {
@@ -899,7 +899,7 @@ function drawCalendar(data, averagePerDay,
 
     const year = svg.selectAll('g').data(years).join('g');
 
-    year.attr('transform', (_, i) => `translate(50, ${40 + i * (5 + 2 * displayWeekends) * textScale * cellSize})`);
+    year.attr('transform', (_, i) => `translate(50,${40 + i * (5 + 2 * displayWeekends) * textScale * cellSize})`);
 
     const year_ = year.append('g').attr('class', "calendar-year");
 
@@ -918,7 +918,7 @@ function drawCalendar(data, averagePerDay,
     const weekday_ = weekday.selectAll('g')
 	  .data(({values:days}) => d3.nest().key(({date}) => moment(date).weekday()).entries(days).filter(({key: weekday}) => dayFilter(moment().weekday(weekday).isoWeekday())))
 	  .join('g')
-	  .attr('transform', ({key: weekday}) => `translate(3, ${weekdayGridY(weekday)})`);
+	  .attr('transform', ({key: weekday}) => `translate(3,${weekdayGridY(weekday)})`);
 
     weekday_.append('text').text(({key: weekday}) => moment.weekdays(true)[weekday])
 	.append('title').text(({values: days}) => displayLongDuration(totOverDay(days), averagePerDay));

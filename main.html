@@ -9,25 +9,28 @@
     <meta name="keywords" content="Org-mode,clock,statistics"/>
     <meta name="author" content="Grégoire Scano"/>
 
-    <link rel="stylesheet" href="index.css"/>
-
     <!-- local install -->
-    <script src="./d3.js"></script>
-    <script src="./moment.js"></script>
-    <script src="./pikaday.js"></script>
-    <link rel="stylesheet" href="./pikaday.css"/>
+    <!-- <script src="./d3.js"></script> -->
+    <!-- <script src="./moment.js"></script> -->
+    <!-- <script src="./pikaday.js"></script> -->
+    <!-- <link rel="stylesheet" href="./pikaday.css"/> -->
     <!-- local install -->
 
     <!-- remote install -->
-    <!-- <script src="https://d3js.org/d3.v5.js"></script> -->
-    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment-with-locales.js"></script> -->
-    <!-- <script src="https://cdn.jsdelivr.net/npm/pikaday/pikaday.js"></script> -->
-    <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pikaday/css/pikaday.css"/> -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.12.0/d3.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment-with-locales.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pikaday/1.8.0/pikaday.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pikaday/1.8.0/css/pikaday.min.css"/>
     <!-- remote install -->
 
-    <script src="./index.js"></script>
+    <script src="./main.js"></script>
     <script src="./lib.js"></script>
+
+    <!-- for demo code only -->
     <script src="./data.js"></script>
+    <!-- for demo code only -->
+
+    <link rel="stylesheet" href="main.css"/>
 
   </head>
 
@@ -45,9 +48,10 @@
       <div id="config">
 
 	<span id="misc">
+	  <small>v1.0</small>
 	  <a id="license" href="./license.html" target="_blank">©</a>
 	  <a id="help" href="./help.html" target="_blank">?</a>
-	  <span id="color">■</span><input type="text" id="color-picker" visibility="none"/>
+	  <span id="color">■</span><input type="text" id="color-picker" visibility="none" title="Type in any HTML supported color name."/>
 	</span>
 
 	<span>
@@ -60,15 +64,15 @@
 
 	<span>
 	  <span for="pace">Pace day by</span>
-	  <input type="number" id="day-pace" min="1" max="120" maxlength="3"/>
+	    <input type="number" id="day-pace" min="1" max="120" maxlength="3"/>
 	  minutes.
 	</span>
 
 	<span>
-	  Display
+	  Count
 	  <input type="checkbox" id="display-weekends"/>
 	  <label for="display-weekends">weekends</label>
-	  , or count as
+	  , or consider as
 	  <input type="checkbox" id="weekends-as-bonus"/>
 	  <label for="weekends-as-bonus">bonus.</label>
 	</span>
@@ -100,8 +104,11 @@
 	<label for="ending-date">to</label>
 	<input type="text" id="ending-date" size="10"/>
 
-	<span id="days">
-	</span>
+	spanning
+	<span id="days"></span>
+	days, with an average of
+	<span id="hours"></span>
+	worked per day.
       </div>
 
       <hr/>
@@ -109,8 +116,8 @@
       <div id="day"></div>
 
       <div id="headlines">
-	<ul id="tags"></ul>
-	<ul id="browser"></ul>
+	<svg id="tags"></svg>
+	<svg id="browser"></svg>
       </div>
 
       <div id="calendar"></div>

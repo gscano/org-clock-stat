@@ -14,46 +14,48 @@ function verify(lhs, rhs) {
     assert.deepEqual(lhs, rhs);
 }
 
+/* FILTER & SPLIT */
+function raw(start, end) { return {start: start, end: end}; }
+
+var filter = createSplittingFilter({ startingDate: "2019-08-15", endingDate: "2019-08-21",
+				     countWeekends: true });
+
+verify(filter(raw("2019-08-15 13:15", "2019-08-21 11:14")),
+       [raw("2019-08-15 13:15", "2019-08-21 11:14")]);
+
+verify(filter(raw("2019-08-14 13:15", "2019-08-21 11:14")),
+       [raw("2019-08-15 00:00", "2019-08-21 11:14")]);
+
+verify(filter(raw("2019-08-15 13:15", "2019-08-22 11:14")),
+       [raw("2019-08-15 13:15", "2019-08-22 00:00")]);
+
+verify(filter(raw("2019-08-14 13:15", "2019-08-22 11:14")),
+       [raw("2019-08-15 00:00", "2019-08-22 00:00")]);
+
+var filter = createSplittingFilter({ startingDate: "2019-08-15", endingDate: "2019-08-21",
+				     countWeekends: false });
+
+verify(filter(raw("2019-08-15 13:15", "2019-08-21 11:14")),
+       [raw("2019-08-15 13:15", "2019-08-17 00:00"),
+	raw("2019-08-19 00:00", "2019-08-21 11:14")]);
+
+verify(filter(raw("2019-08-14 13:15", "2019-08-21 11:14")),
+       [raw("2019-08-15 00:00", "2019-08-17 00:00"),
+	raw("2019-08-19 00:00", "2019-08-21 11:14")]);
+
+verify(filter(raw("2019-08-15 13:15", "2019-08-22 11:14")),
+       [raw("2019-08-15 13:15", "2019-08-17 00:00"),
+	raw("2019-08-19 00:00", "2019-08-22 00:00")]);
+
+verify(filter(raw("2019-08-14 13:15", "2019-08-22 11:14")),
+       [raw("2019-08-15 00:00", "2019-08-17 00:00"),
+	raw("2019-08-19 00:00", "2019-08-22 00:00")]);
+/* FILTER & SPLIT */
+
 const d1 = "2019-08-09 19:25";
 const d2 = "2019-08-09 20:33";
 const d3 = "2019-08-10 02:12";
 const d4 = "2019-08-11 23:41";
-
-/* FLATTEN */
-function range(start, end) { return {start: start, end: end}; }
-
-const t1 = {'entries': [range(d1,d2)], 'subtasks': []};
-const t2 = {'entries': [range(d3,d4)], 'subtasks': []};
-const t3 = {'entries': [range(d1,d2)],
-	    'subtasks': [{'entries': [range(d2,d3)], 'subtasks' : []}] };
-const t4 = {'entries': [range(d1,d2)],
-	    'subtasks': [{'entries': [range(d2,d3)],
-			  'subtasks': [{'entries': [range(d3,d4)], 'subtasks': []}] }] };
-
-function bundle(start,end) { return {"id":undefined,"start":start,"end":end}; }
-
-verify(flattenTask([], t1), [bundle(d1,d2)]);
-verify(flattenTask([], t2), [bundle(d3,d4)]);
-verify(flattenTask([], t3), [bundle(d1,d2),bundle(d2,d3)]);
-verify(flattenTask([], t4), [bundle(d1,d2), bundle(d2,d3), bundle(d3,d4)]);
-
-verify(flattenTasks([t1,t2]), [bundle(d1,d2),bundle(d3,d4)]);
-/* FLATTEN */
-
-/* FILTER & SPLIT */
-function raw(id, start, end) { return {id:id, start:start, end:end}; }
-
-var ids = new Set([2,3]);
-var filter = createSplittingFilter(ids, "2019-08-09", "2019-08-09");
-verify(filter(raw(1, d1, d2)), []);
-verify(filter(raw(2, d1, d2)), [raw(2, d1, d2)]);
-var filter = createSplittingFilter(ids, "2019-08-09", "2019-08-10");
-verify(filter(raw(2, d1, d2)), [raw(2, d1, d2)]);
-verify(filter(raw(2, d2, d3)), [raw(2, d2, "2019-08-10 00:00"), raw(2, "2019-08-10 00:00", d3)]);
-verify(filter(raw(3, d2, d4)), [raw(3, d2, "2019-08-10 00:00"), raw(3, "2019-08-10 00:00", "2019-08-11 00:00")])
-var filter = createSplittingFilter(ids, "2019-08-09", "2019-08-10", "2019-08-09");
-verify(filter(raw(2, d2, d4)), [raw(2, d2, "2019-08-10 00:00")]);
-/* FILTER & SPLIT */
 
 /* DURATION */
 function make(date, duration) { return [new Date(date), moment.duration(duration).asMinutes()]; }
@@ -70,11 +72,13 @@ function reduced(date, duration) { return {date: new Date(date),
 
 function duration(start,end) { return {start:start, end:end}; }
 
-verify(reduceDuration([duration(d1,d2),duration(d3,d4)]),
+verify(Array.from(reduceDuration([duration(d1,d2),duration(d3,d4)]))
+       .map(([date, duration]) => ({date: new Date(date), duration: duration})),
        [reduced("2019-08-09", "01:08"),
 	reduced("2019-08-10", "21:48"),
 	reduced("2019-08-11", "23:41")]);
-verify(reduceDuration([duration(d1,d2), duration(d2,d3), duration(d3,d4)]),
+verify(Array.from(reduceDuration([duration(d1,d2), duration(d2,d3), duration(d3,d4)]))
+       .map(([date, duration]) => ({date: new Date(date), duration: duration})),
        [reduced("2019-08-09", "04:35"),
 	reduced("2019-08-10", "24:00"),
 	reduced("2019-08-11", "23:41")]);

@@ -1,13 +1,14 @@
 const tryUsingWorkers = true;
-const debugOn = false;
+const debugOn = true;
 const demoOn = true;
 
 window.onload = async function () {
 
     window.color = "green";
     window.defaultDayPace = 15;
-    window.toDraw = new Set();
     window.maxPerDay = 10 * 60;
+
+    window.toDraw = new Set();
 
     load('./license.html')
 	.then(content => {

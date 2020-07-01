@@ -7,6 +7,7 @@ window.onload = async function () {
     window.color = "green";
     window.defaultDayPace = 15;
     window.maxPerDay = 10 * 60;
+    window.maxHeadlineLength = 40;
 
     window.toDraw = new Set();
 
@@ -724,15 +725,20 @@ function drawBrowser(data, total, averagePerDay) {
 	.attr('class', "folder")
 	.on('click', headline => drawWith(['headlines'], window.data.foldHeadline(headline)));
 
-    text.append('tspan')
+    var name = text.append('tspan')
 	.attr('dx', 5)
 	.attr('dy', 1)
-	.text(({name}) => name)
+	.text(({depth, name}) => window.maxHeadlineLength - 3 - (depth * xShift / 10) < name.length ?
+	      name.substring(0, window.maxHeadlineLength - 3 - (depth * xShift / 10)) + "..." :
+	      name)
 	.attr('class', "headline")
 	.attr('headline-id', ({id}) => id)
 	.attr('is-selected', ({id}) => window.data.selectedHeadlines.has(id))
 	.attr('is-habit', ({ishabit}) => ishabit ? "true" : "false")
 	.on('click', headline => drawAllWith(window.data.flipHeadline(headline)));
+
+    name.filter(({depth, name}) => window.maxHeadlineLength - 3 - (depth * xShift / 10) <= name.length)
+	.append('title').text(({name}) => name);
 
     text.append('tspan')
 	.attr('dx', 10)

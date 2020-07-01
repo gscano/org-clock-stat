@@ -58,13 +58,37 @@ window.onload = async function () {
 
     /* WORKERS */
     if(tryUsingWorkers && typeof(Worker) !== undefined && !window.location.href.startsWith('file:///')) {
-	window.worker = { day:       new Worker('worker.js', {name: 'day'}),
-			  headlines: new Worker('worker.js', {name: 'headlines'}),
-			  calendar:  new Worker('worker.js', {name: 'calendar'}) };
+	const url = Array.from(document.getElementsByTagName('script')).reduce(
+	    (url, element) =>
+		element.attributes.getNamedItem('src') != null
+		&& element.attributes.getNamedItem('src').value.search('moment.js') != -1 ?
+		element.attributes.getNamedItem('src').value :
+		url,
+		'');
 
-	window.worker.day.      onmessage = event => collectWorkThenDisplay(event.data, 'day');
-	window.worker.headlines.onmessage = event => collectWorkThenDisplay(event.data, 'headlines');
-	window.worker.calendar. onmessage = event => collectWorkThenDisplay(event.data, 'calendar');
+	if(debugOn) console.log("Worker loading: " + url);
+
+	const from = 'worker.js' + '?' + encodeURI(url);
+
+	window.worker = { day:       new Worker(from, {name: 'day'}),
+			  headlines: new Worker(from, {name: 'headlines'}),
+			  calendar:  new Worker(from, {name: 'calendar'}) };
+
+	var abort = false;
+
+	window.worker.day.onerror = _ => abort = true;
+	window.worker.headlines.onerror = _ => abort = true;
+	window.worker.calendar.onerror = _ => abort = true;
+
+	if(abort == true)
+	    window.worker = null;
+	else {
+	    if(debugOn) console.log("Worker loaded.");
+
+	    window.worker.day.      onmessage = event => collectWorkThenDisplay(event.data, 'day');
+	    window.worker.headlines.onmessage = event => collectWorkThenDisplay(event.data, 'headlines');
+	    window.worker.calendar. onmessage = event => collectWorkThenDisplay(event.data, 'calendar');
+	}
     }
     else
 	window.worker = null;

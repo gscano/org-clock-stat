@@ -11,6 +11,9 @@ window.onload = async function () {
 
     window.toDraw = new Set();
 
+    // Loading local files will fail! so we use a default _blank target
+    // to open them locally and remove the href when fetched from a server
+    // using an onclick handler to display the downloaded content.
     load('./license.html')
 	.then(content => {
 	    document.getElementById('license-content').innerHTML = content;

@@ -1,8 +1,8 @@
 # Org-clock statistics
 
-Computes and renders Org-mode clocked time.
+Compute and render Org-mode clocked time.
 
-Check out the [website](https://malloc.fr/org-clock-stat/index.html) or the [demo](https://malloc.fr/org-clock-stat/main.html).
+Check out the [demo](https://malloc.fr/org-clock-stat/main.html). Rendering could appear a bit slow because random data generation is done by the browser).
 
 Repositories are available on [GitHub](https://github.com/gscano/org-clock-stat.git) and [malloc.fr](https://www.malloc.fr/org-clock-stat.git).
 
@@ -31,6 +31,6 @@ This project depends on
 * [moment.js](https://momentjs.com/) version 2.24.0;
 * [Pikaday](https://pikaday.com/) version 1.8.0.
 
-For a better latency, run the `install.sh` command in order to retrieve and store locally the required JavaScript and CSS files. Then comment/uncomment the *remote*/*local* sections of [main.html](./main.html#L14-L26).
+For a better latency, run the `install.sh` command in order to retrieve and store locally the required JavaScript and CSS files. Then comment/uncomment the *remote*/*local* sections of [main.html](./main.html#L12-L24).
 
 The general behavior can be controlled by three variables at the top of [main.js](./main.js#L1-L3) and three more at the beginning of the [`window.onload`](./main.js#L7-L9) function.

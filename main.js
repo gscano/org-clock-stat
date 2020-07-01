@@ -170,7 +170,7 @@ class Data {
 		 ([first, last], {start, end}) => [first.isBefore(moment(start)) ? first : moment(start),
 						   last.isAfter(moment(end)) ? last : moment(end)],
 		 [first, last]),
-	     [moment(), moment(0)])
+	     [moment(0), moment()])
 	 .map(moment => moment.toDate()));
 
 	this.selectedHeadlines = new Set();

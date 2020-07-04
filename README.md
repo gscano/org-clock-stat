@@ -2,7 +2,7 @@
 
 Compute and render Org-mode clocked time.
 
-Check out the [demo](https://malloc.fr/org-clock-stat/main.html). Rendering could appear a bit slow because random data generation is done by the browser).
+Check out the [demo](https://malloc.fr/org-clock-stat/main.html) (the initial display could appear a bit slow because random data generation is done by the browser).
 
 Repositories are available on [GitHub](https://github.com/gscano/org-clock-stat.git) and [malloc.fr](https://www.malloc.fr/org-clock-stat.git).
 

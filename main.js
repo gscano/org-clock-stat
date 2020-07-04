@@ -112,7 +112,10 @@ window.onload = async function () {
 							     evening: 17, eveningProbability: 0.1,
 							     weekendShift: 5});
 
-	const data = randomData(projects, "2016-08-21", "2019-08-31", activityRandomizer, 100);
+	const data = randomData(
+	    projects,
+	    moment().subtract(3, 'years').format('YYYY-MM-DD'), moment().format('YYYY-MM-DD'),
+	    activityRandomizer, 100);
 
 	readData(data.join('\n'));
     }
@@ -197,7 +200,7 @@ class Data {
 		 ([first, last], {start, end}) => [first.isBefore(moment(start)) ? first : moment(start),
 						   last.isAfter(moment(end)) ? last : moment(end)],
 		 [first, last]),
-	     [moment(0), moment()])
+	     [moment(), moment()])
 	 .map(moment => moment.toDate()));
 
 	this.selectedHeadlines = new Set();

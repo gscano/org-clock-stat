@@ -7,9 +7,13 @@ window.onload = async function () {
     window.color = "green";
     window.defaultDayPace = 15;
     window.maxPerDay = 10 * 60;
+    window.maxHeadlineLength = 40;
 
     window.toDraw = new Set();
 
+    // Loading local files will fail! so we use a default _blank target
+    // to open them locally and remove the href when fetched from a server
+    // using an onclick handler to display the downloaded content.
     load('./license.html')
 	.then(content => {
 	    document.getElementById('license-content').innerHTML = content;
@@ -57,13 +61,37 @@ window.onload = async function () {
 
     /* WORKERS */
     if(tryUsingWorkers && typeof(Worker) !== undefined && !window.location.href.startsWith('file:///')) {
-	window.worker = { day:       new Worker('worker.js', {name: 'day'}),
-			  headlines: new Worker('worker.js', {name: 'headlines'}),
-			  calendar:  new Worker('worker.js', {name: 'calendar'}) };
+	const url = Array.from(document.getElementsByTagName('script')).reduce(
+	    (url, element) =>
+		element.attributes.getNamedItem('src') != null
+		&& element.attributes.getNamedItem('src').value.search('moment.js') != -1 ?
+		element.attributes.getNamedItem('src').value :
+		url,
+		'');
 
-	window.worker.day.      onmessage = event => collectWorkThenDisplay(event.data, 'day');
-	window.worker.headlines.onmessage = event => collectWorkThenDisplay(event.data, 'headlines');
-	window.worker.calendar. onmessage = event => collectWorkThenDisplay(event.data, 'calendar');
+	if(debugOn) console.log("Worker loading: " + url);
+
+	const from = 'worker.js' + '?' + encodeURI(url);
+
+	window.worker = { day:       new Worker(from, {name: 'day'}),
+			  headlines: new Worker(from, {name: 'headlines'}),
+			  calendar:  new Worker(from, {name: 'calendar'}) };
+
+	var abort = false;
+
+	window.worker.day.onerror = _ => abort = true;
+	window.worker.headlines.onerror = _ => abort = true;
+	window.worker.calendar.onerror = _ => abort = true;
+
+	if(abort == true)
+	    window.worker = null;
+	else {
+	    if(debugOn) console.log("Worker loaded.");
+
+	    window.worker.day.      onmessage = event => collectWorkThenDisplay(event.data, 'day');
+	    window.worker.headlines.onmessage = event => collectWorkThenDisplay(event.data, 'headlines');
+	    window.worker.calendar. onmessage = event => collectWorkThenDisplay(event.data, 'calendar');
+	}
     }
     else
 	window.worker = null;
@@ -84,7 +112,10 @@ window.onload = async function () {
 							     evening: 17, eveningProbability: 0.1,
 							     weekendShift: 5});
 
-	const data = randomData(projects, "2016-08-21", "2019-08-31", activityRandomizer, 100);
+	const data = randomData(
+	    projects,
+	    moment().subtract(3, 'years').format('YYYY-MM-DD'), moment().format('YYYY-MM-DD'),
+	    activityRandomizer, 100);
 
 	readData(data.join('\n'));
     }
@@ -169,7 +200,7 @@ class Data {
 		 ([first, last], {start, end}) => [first.isBefore(moment(start)) ? first : moment(start),
 						   last.isAfter(moment(end)) ? last : moment(end)],
 		 [first, last]),
-	     [moment(), moment(0)])
+	     [moment(), moment()])
 	 .map(moment => moment.toDate()));
 
 	this.selectedHeadlines = new Set();
@@ -724,15 +755,20 @@ function drawBrowser(data, total, averagePerDay) {
 	.attr('class', "folder")
 	.on('click', headline => drawWith(['headlines'], window.data.foldHeadline(headline)));
 
-    text.append('tspan')
+    var name = text.append('tspan')
 	.attr('dx', 5)
 	.attr('dy', 1)
-	.text(({name}) => name)
+	.text(({depth, name}) => window.maxHeadlineLength - 3 - (depth * xShift / 10) < name.length ?
+	      name.substring(0, window.maxHeadlineLength - 3 - (depth * xShift / 10)) + "..." :
+	      name)
 	.attr('class', "headline")
 	.attr('headline-id', ({id}) => id)
 	.attr('is-selected', ({id}) => window.data.selectedHeadlines.has(id))
 	.attr('is-habit', ({ishabit}) => ishabit ? "true" : "false")
 	.on('click', headline => drawAllWith(window.data.flipHeadline(headline)));
+
+    name.filter(({depth, name}) => window.maxHeadlineLength - 3 - (depth * xShift / 10) <= name.length)
+	.append('title').text(({name}) => name);
 
     text.append('tspan')
 	.attr('dx', 10)

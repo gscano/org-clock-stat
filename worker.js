@@ -1,5 +1,10 @@
-importScripts('lib.js');
-importScripts('https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment-with-locales.js');
+try {
+    importScripts('lib.js');
+    importScripts(location.search.substring(1));
+}
+catch(reason) {
+    console.log("Worker failed: " + reason);
+}
 
 var data;
 

@@ -20,7 +20,7 @@ with every column being text except that:
 
 However, it is intended to work out of the box for *Org-mode* files processed by [org-clock-csv](https://github.com/atheriel/org-clock-csv/) which can be installed as a submodule for convenience.
 Please read the [README](https://github.com/atheriel/org-clock-csv/blob/master/README.md) first in order to setup a specific init file (`~/.emacs.d/init.el` will be used by default).
-On Linux, the `run.sh` script could be used to generate the targeted CSV file for a standard installation and configuration.
+On Linux, the `run.sh` script could be used to generate the targeted CSV file for a standard installation and configuration (csv content is on the standard output).
 As a reminder, if no arguments are supplied and if your emacs init file contains the `org-agenda-files` variable, all enclosed *Org-mode* files will be parsed.
 
 ## Install

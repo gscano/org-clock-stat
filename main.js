@@ -404,7 +404,7 @@ function parse(data) {
 	}
     });
 
-    const parents = new Array(data.category)
+    const parents = new Array()
 	.concat(data.parents.split('/').filter(value => 0 < value.length))
 	.concat(new Array(data.task));
 

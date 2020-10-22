@@ -13,7 +13,7 @@
 
 ## `readData`
 
-* parse text as CSV `task,parents,category,start,end,effort,ishabit,tags` formatted rows with an arbitrary order
+* parse text as CSV `task,parents,start,end,effort,ishabit,tags` formatted rows with an arbitrary order
 * complete data analysis
   * assigning IDs to headlines
   * building depency tree

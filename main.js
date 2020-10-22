@@ -397,7 +397,7 @@ function readData(input) {
 
 function parse(data) {
 
-    ['task', 'parents', 'category', 'start', 'end'].forEach(column => {
+    ['task', 'parents', 'start', 'end'].forEach(column => {
 	if(!data.hasOwnProperty(column)) {
 	    alert("Cannot find '" + column + "' column.");
 	    throw "Cannot find '" + column + "' column.";

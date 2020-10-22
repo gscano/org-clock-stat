@@ -10,7 +10,7 @@ Repositories are available on [GitHub](https://github.com/gscano/org-clock-stat)
 
 Displays the following __mandatory__ and ~~optional~~ CSV file columns:
 
-__task__, __parents__, __category__, __start__, __end__, ~~effort~~, ~~ishabit~~, ~~tags~~
+__task__, __parents__, __start__, __end__, ~~effort~~, ~~ishabit~~, ~~tags~~
 
 with every column being text except that:
 

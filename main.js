@@ -932,7 +932,7 @@ function drawCalendar(data, averagePerDay,
     const svg = d3.selectAll('div#calendar').append('svg');
 
     svg.attr('width', 200 + 54 * (cellSize + interDaySpace) + 12 * interMonthSpace)
-	.attr('height', years.length * (30 + 10 * (cellSize + interDaySpace)))
+	.attr('height', years.length * (50 + (5 + 2 * displayWeekends) * (cellSize + interDaySpace)))
 
     const year = svg.selectAll('g').data(years).join('g');
 

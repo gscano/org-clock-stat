@@ -149,3 +149,9 @@ body[visibility=soft]
 {
     text-anchor: end;
 }
+
+#calendar, #headlines-scroll
+{
+    max-height: 75vh;
+    overflow:auto;
+}

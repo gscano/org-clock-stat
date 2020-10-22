@@ -397,14 +397,14 @@ function readData(input) {
 
 function parse(data) {
 
-    ['task', 'parents', 'category', 'start', 'end'].forEach(column => {
+    ['task', 'parents', 'start', 'end'].forEach(column => {
 	if(!data.hasOwnProperty(column)) {
 	    alert("Cannot find '" + column + "' column.");
 	    throw "Cannot find '" + column + "' column.";
 	}
     });
 
-    const parents = new Array(data.category)
+    const parents = new Array()
 	.concat(data.parents.split('/').filter(value => 0 < value.length))
 	.concat(new Array(data.task));
 
@@ -932,7 +932,7 @@ function drawCalendar(data, averagePerDay,
     const svg = d3.selectAll('div#calendar').append('svg');
 
     svg.attr('width', 200 + 54 * (cellSize + interDaySpace) + 12 * interMonthSpace)
-	.attr('height', years.length * (30 + 10 * (cellSize + interDaySpace)))
+	.attr('height', years.length * (50 + (5 + 2 * displayWeekends) * (cellSize + interDaySpace)))
 
     const year = svg.selectAll('g').data(years).join('g');
 

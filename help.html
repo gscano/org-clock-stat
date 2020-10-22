@@ -47,9 +47,24 @@
     #help-headlines
     {
     text-align: center;
-    width: 30%;
+    width: 35%;
     margin:10px;
     float: left;
+    }
+
+    .headline[is-habit=true]
+    {
+	text-decoration: underline;
+    }
+
+    .headline[is-selected=true]
+    {
+	font-weight: bold;
+    }
+
+    .headline[is-selected=false]
+    {
+	font-weight: normal;
     }
 
     #help-calendar
@@ -65,7 +80,7 @@
 
     <div id="help-close">
       &times;
-      <small>v1.1</small>
+      <small>v1.2</small>
       <a href="https://code.malloc.fr/org-clock-stat" style="text-decoration: none;">@</a>
     </div>
 
@@ -79,7 +94,7 @@
       </span>
       <hr/>
       <div class="help-config-desc" style="width: 270px">
-	Used in the <u><b>calendar</b></u> view to center the color of a day around this targeted average value.
+	Used in the <u><b>calendar</b></u> view to center the color of a day around this targeted average value; and in the <u><b>headlines</b></u> view as the day divisor.
       </div>
     </div>
 
@@ -139,7 +154,7 @@
 	<label>With file</label>
 	<input type="file" disabled="true" style="color: transparent;"/>
 
-	<span style="position: relative;z-index: 1;left: -170px;">file.csv</span>
+	<span style="position: relative;z-index: 1;left: -170px;">org-clock.csv</span>
 
 	<label>from</label>
 	<input type="text" disabled="true" value="2019-02-07" size="10"/>
@@ -161,7 +176,6 @@
 	  <ul class="help-csv-fields">
 	    <li><ins>task</ins></li>
 	    <li><ins>parents</ins></li>
-	    <li><ins>category</ins></li>
 	    <li><ins>start</ins></li>
 	    <li><ins>end</ins></li>
 	    <li><del>effort</del></li>
@@ -171,11 +185,11 @@
 
 	  <ul>
 	    <li>
-	      A <ins>task</ins> will fall under a <ins>category</ins> and then be placed in the <ins>parents</ins> branch in the <u><b>headlines</b></u> view.</li>
+	      A <ins>task</ins> is placed under its <ins>parents</ins> in the <u><b>headlines</b></u> view.</li>
 	    <li>The <ins>start</ins> and <ins>end</ins> fields must be in any format that will correctly be parsed by the JavaScript <i>Date</i> constructor (eg. <pre style="display: inline;">'YYYY-MM-DD HH:mm'</pre>).
 	    </li>
 	    <li>
-	      The <ins><del>effort</del></ins> should be in a form that can be parse as a duration, typically <pre style="display: inline;">'HH:mm'</pre>, while <ins><del>ishabit</del></ins> must contain <pre style="display:inline;">t</pre> to be considered true.
+	      The <ins><del>effort</del></ins> should be in a form that can be parsed as a duration, typically <pre style="display: inline;">'HH:mm'</pre>, while <ins><del>ishabit</del></ins> must contain <pre style="display:inline;">t</pre> to be considered true.
 	      <br/>
 	      For a task with multiple entries, only the last encountered entry will be kept for those two fields.
 	    </li>
@@ -193,9 +207,9 @@
 	<div>
 	  All displayed data in every view is within the <u><i>starting date</i></u> and the <u><i>ending date</i></u>.
 	  <br/><br/>
-	  An indication of the number of days spanning this period is displayed and a mouse hover shows the number of weekend days that it encompasses.
+	  The number of days for which at least one entry exists is displayed and a mouse hover shows the number of weekend days that it encompasses.
 	  <br/><br/>
-	  The average number of hours is then displayed and a mouse hover shows the percentage of the targeted <u><i>average</i></u>.
+	  The average number of hours per day is then displayed and a mouse hover shows the percentage of the targeted <u><i>average</i></u>.
 	</div>
       </div>
     </div>
@@ -263,7 +277,7 @@
       Its color indicates the amount of time spent in average during this period, white being 0 and the maximum of the period being the selected <u><i>color</i></u>.
       When the mouse hovers a box, the spanning duration is displayed as well as the average amount of time spent and the corresponding percentage.
       <br/><br/>
-      When the <u><i>pace</i></u> is not a divider of the number of minutes in a day the last square is shrunk to the remainder and stops at 00:00 although it as the same size as the others.
+      When the <u><i>pace</i></u> is not a divider of the number of minutes in a day, the last square represents the remainder to 00:00, although it as the same size as the others.
     </div>
   </div>
 
@@ -297,12 +311,12 @@
 	  <tspan dx="10" class="headline" is-selected="true">All</tspan>
 	  <tspan dx="10">179d 01:49</tspan></text></g><g transform="translate(0,53)"><text>
 	  <tspan class="folder">▾</tspan>
-	  <tspan dx="5" dy="1" class="headline" headline-id="0" is-selected="true" is-habit="false">project 1</tspan>
+	  <tspan dx="5" dy="1" class="headline" headline-id="0" is-selected="true" is-habit="false">Project 1</tspan>
 	  <tspan dx="10">115d 01:41<title>64.3%</title></tspan></text></g><g transform="translate(20,86)"><text>
-	  <tspan dx="5" dy="1" class="headline" headline-id="1" is-selected="true" is-habit="false">A1</tspan>
+	  <tspan dx="5" dy="1" class="headline" headline-id="1" is-selected="true" is-habit="false">Backend</tspan>
 	  <tspan dx="10">59d 00:17<title>51.2%</title></tspan>
 	</text>
-	<g transform="translate(150,5)"><title>496% of the estimated 11d 06:14 effort</title>
+	<g transform="translate(190,5)"><title>496% of the estimated 11d 06:14 effort</title>
 	  <path d="M 0 0 a 10 10 0 1 1 40 0" fill="green"></path>
 	  <circle cx="20" r="3" fill="white"></circle>
 	  <path d="M 20 0 L 0.6814834742186342 -5.176380902050415" stroke="white" stroke-width="3"></path>
@@ -317,10 +331,10 @@
 
       <g transform="translate(20,119)">
 	<text>
-	  <tspan dx="5" dy="1" class="headline" headline-id="2" is-selected="true" is-habit="false">A2</tspan>
+	  <tspan dx="5" dy="1" class="headline" headline-id="2" is-selected="true" is-habit="true">Frontend</tspan>
 	  <tspan dx="10">56d 01:24<title>48.8%</title></tspan>
 	</text>
-	<g transform="translate(150,5)"><title>72% of the estimated 77d 03:45 effort</title>
+	<g transform="translate(190,5)"><title>72% of the estimated 77d 03:45 effort</title>
 	  <path d="M 0 0 a 10 10 0 1 1 40 0" fill="green"></path>
 	  <circle cx="20" r="3" fill="white"></circle>
 	  <path d="M 20 0 L 28.378122498542957 -18.160590943011968" stroke="white" stroke-width="3"></path>
@@ -329,9 +343,9 @@
 
       <g transform="translate(0,152)"><text>
 	  <tspan class="folder">▾</tspan>
-	  <tspan dx="5" dy="1" class="headline" headline-id="3" is-selected="true" is-habit="false">project 2</tspan>
+	  <tspan dx="5" dy="1" class="headline" headline-id="3" is-selected="true" is-habit="false">Project 2</tspan>
 	  <tspan dx="10">64d 00:08<title>35.7%</title></tspan></text></g><g transform="translate(20,185)"><text>
-	  <tspan dx="5" dy="1" class="headline" headline-id="4" is-selected="true" is-habit="false">A1</tspan>
+	  <tspan dx="5" dy="1" class="headline" headline-id="4" is-selected="true" is-habit="false">Specifications</tspan>
 	  <tspan dx="10">64d 00:08<title>100.0%</title></tspan></text><g transform="translate(300,-20)">
 	  <rect transform="translate(0,0)" width="60" height="30" ry="15" rx="12" fill="rgb(105,193,155)"></rect>
 	  <rect transform="translate(60,0)" width="60" height="30" ry="15" rx="12" fill="rgb(169,2,219)"></rect>
@@ -344,15 +358,19 @@
     <hr/>
 
     <div class="help-config-desc">
-      For each headline, the total number of hours spent between the <u><i>starting date</i></u> end the <u><i>ending date</u></i> is displayed, cumulating children; and a mouse hover reveals the percentage within its parent cumulated time.
+      Displays the hierarchy of headlines, with for each headline, the total number of hours spent between the <u><i>starting date</i></u> end the <u><i>ending date</u></i>, cumulating children; a mouse hover the duration reveals the percentage within its parent cumulated time.
       <br/>
-      If in bold font, then the headline is selected and counted in the <u><b>day</b></u> and <u><b>calendar</b></u> views.
+      <br/>
+      If in bold font, the headline is selected and counted in the <u><b>day</b></u> and <u><b>calendar</b></u> views, it also counts towards its parent time.
+      <br/>
       Headlines can be toggled on and off by clicking on their titles.
-      They can also be folded using the arrows on the beginning of the line.
-      A folded arrow will be plain if all the headlines within it are selected, otherwise, it will be empty.
+      They can also be folded using the arrows on the beginning of the line. A folded arrow will be plain if all the headlines within it are selected, otherwise, it will be empty.
       <br/>
-      If an effort is specified for an headline, a gauge will be displayed. If the pointer is vertical, then the amount of time spent is equal to the anticipated effort. When on the right side, the time spent is less than anticipated. When on the left side, more time has been spent and the pointer goes up to 2 times the anticipated effort, after which the pointer remains on the leftmost position.
+      <br/>
+      If an effort is specified for an headline, a gauge will be displayed.
       When mouse hovered, it displays the exact percentage as well as the effort itself.
+      <br/>
+      If the pointer is vertical, then the amount of time spent is equal to the anticipated effort. When on the right side, the time spent is less than anticipated. When on the left side, more time has been spent and the pointer remains on the leftmost position as soon as the time spent exceed the anticipated effort by a factor 2.
       <br/>
       <br/>
       The first line displays all tags.
@@ -697,7 +715,7 @@
 	<li>their color is centered around the targeted average per day across all the corresponding period of time;</li>
 	<li>their X radius is a factor of the standard deviation divided by the average per day, yielding a circle for a standard deviation of 0.</li>
       </ul>
-      A mouse hover on a <u><i>weekday</i></u>, <u><i>month</i></u> or <u><i>year</i></u> displays the total time spent during those durations, while a mouse hover on the associated ellipses reveals the average and the standard deviation.
+      A mouse hover on a <u><i>weekday</i></u>, <u><i>month</i></u>, or <u><i>year</i></u> ellipse displays the total time spent during those durations; a mouse hover on the associated ellipses reveals the average and the standard deviation.
     </div>
 
   </div>

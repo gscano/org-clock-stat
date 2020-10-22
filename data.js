@@ -1,4 +1,4 @@
-// Project: [String: category, [String]: parents, String: tasks, [String]: tags, Boolean: isHabit, String: effort]
+// Project: [[String]: parents, String: tasks, [String]: tags, Boolean: isHabit, String: effort]
 
 // Integer => [Project] => Integer => [String] => Integer => Integer => Float[0,1] => Integer => Float[0,1] => Integer => Float[0,1] => Integer
 function randomProject(headlines, projects,
@@ -98,7 +98,7 @@ function createActivityRandomizer({beforeWorkProbability: beforeWorkProbability,
 // [Project] => Date => Date => (Date => Float[0,1]) => Integer => [String]
 function randomData(projects, from, to, activityRandomizer, workingStep) {
 
-    csv = ["task,parents,category,start,end,effort,ishabit,tags"];
+    csv = ["task,parents,start,end,effort,ishabit,tags"];
 
     from = moment(from);
     to = moment(to);
@@ -118,7 +118,6 @@ function randomData(projects, from, to, activityRandomizer, workingStep) {
 
 	    line.push(project[2]);
 	    line.push(project[1].slice(0, Math.min(Math.floor(Math.random() * project[1].length^2), project[1].length)).join('/'));
-	    line.push(project[0]);
 
 	    line.push(from_);
 	    line.push(from.format('YYYY-MM-DD HH:mm'));

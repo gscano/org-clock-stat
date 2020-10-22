@@ -1,0 +1,13 @@
+2020-10-22 v1.2
+
+	* Added: include title in path.
+	* Added: scroll headlines.
+	* Removed: do not use categories.
+
+2020-07-06 v1.1
+
+	* Added: long string terminated by an ellipsis.
+	* Changed: error handling and file loading for workers.
+	* Fixed: start and end date detection.
+
+2019-10-18 v1.0
